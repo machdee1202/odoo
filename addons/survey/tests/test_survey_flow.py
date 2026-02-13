@@ -6,7 +6,7 @@ from odoo.tests import tagged
 from odoo.tests.common import HttpCase
 
 
-@tagged('-at_install', 'post_install', 'functional')
+@tagged('-at_install', 'post_install', 'functional', 'is_query_count')
 class TestSurveyFlow(common.TestSurveyCommon, HttpCase):
     def _format_submission_data(self, page, answer_data, additional_post_data):
         post_data = {}
@@ -20,18 +20,18 @@ class TestSurveyFlow(common.TestSurveyCommon, HttpCase):
     def test_flow_public(self):
         # Step: survey manager creates the survey
         # --------------------------------------------------
-        with self.with_user(self.survey_manager):
+        with self.with_user('survey_manager'):
             survey = self.env['survey.survey'].create({
                 'title': 'Public Survey for Tarte Al Djotte',
                 'access_mode': 'public',
                 'users_login_required': False,
                 'questions_layout': 'page_per_section',
-                'state': 'open'
             })
 
             # First page is about customer data
             page_0 = self.env['survey.question'].create({
                 'is_page': True,
+                'question_type': False,
                 'sequence': 1,
                 'title': 'Page1: Your Data',
                 'survey_id': survey.id,
@@ -48,6 +48,7 @@ class TestSurveyFlow(common.TestSurveyCommon, HttpCase):
             # Second page is about tarte al djotte
             page_1 = self.env['survey.question'].create({
                 'is_page': True,
+                'question_type': False,
                 'sequence': 4,
                 'title': 'Page2: Tarte Al Djotte',
                 'survey_id': survey.id,
@@ -85,15 +86,18 @@ class TestSurveyFlow(common.TestSurveyCommon, HttpCase):
         self.assertAnswer(answers, 'new', self.env['survey.question'])
         csrf_token = self._find_csrf_token(r.text)
 
+        r = self._access_begin(survey, answer_token)
+        self.assertResponse(r, 200)
+
         # Customer submit first page answers
         answer_data = {
             page0_q0.id: {'value': ['Alfred Poilvache']},
             page0_q1.id: {'value': ['44.0']},
         }
         post_data = self._format_submission_data(page_0, answer_data, {'csrf_token': csrf_token, 'token': answer_token, 'button_submit': 'next'})
-        r = self._access_submit(survey, answer_token, post_data)
+        r = self._access_submit(survey, answer_token, post_data, query_count=45)  # ! 45 without `website` (single app CI), 38 `survey+website`, 39 "full" runbot
         self.assertResponse(r, 200)
-        answers.invalidate_cache()  # TDE note: necessary as lots of sudo in controllers messing with cache
+        answers.invalidate_recordset()  # TDE note: necessary as lots of sudo in controllers messing with cache
 
         # -> this should have generated answer lines
         self.assertAnswer(answers, 'in_progress', page_0)
@@ -109,9 +113,9 @@ class TestSurveyFlow(common.TestSurveyCommon, HttpCase):
             page1_q0.id: {'value': [page1_q0.suggested_answer_ids.ids[0], page1_q0.suggested_answer_ids.ids[1]]},
         }
         post_data = self._format_submission_data(page_1, answer_data, {'csrf_token': csrf_token, 'token': answer_token, 'button_submit': 'next'})
-        r = self._access_submit(survey, answer_token, post_data)
+        r = self._access_submit(survey, answer_token, post_data, query_count=40)  # ! 37 without `website`, 32 `survey+website`, 40 "full" runbot
         self.assertResponse(r, 200)
-        answers.invalidate_cache()  # TDE note: necessary as lots of sudo in controllers messing with cache
+        answers.invalidate_recordset()  # TDE note: necessary as lots of sudo in controllers messing with cache
 
         # -> this should have generated answer lines and closed the answer
         self.assertAnswer(answers, 'done', page_1)

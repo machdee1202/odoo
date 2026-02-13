@@ -14,8 +14,8 @@ class TestUiCertification(HttpCaseWithUserDemo):
         self.survey_certification = self.env['survey.survey'].create({
             'title': 'MyCompany Vendor Certification',
             'access_token': '4ead4bc8-b8f2-4760-a682-1fde8daaaaac',
-            'state': 'open',
             'access_mode': 'public',
+            'questions_layout': 'one_page',
             'users_can_go_back': True,
             'users_login_required': True,
             'scoring_type': 'scoring_with_answers',
@@ -53,7 +53,6 @@ class TestUiCertification(HttpCaseWithUserDemo):
                     'title': 'Select all the existing products',
                     'sequence': 3,
                     'question_type': 'multiple_choice',
-                    'column_nb': '4',
                     'suggested_answer_ids': [
                         (0, 0, {
                             'value': 'Chair floor protection',
@@ -84,7 +83,6 @@ class TestUiCertification(HttpCaseWithUserDemo):
                     'title': 'Select all the available customizations for our Customizable Desk',
                     'sequence': 4,
                     'question_type': 'multiple_choice',
-                    'column_nb': '4',
                     'suggested_answer_ids': [
                         (0, 0, {
                             'value': 'Color',
@@ -150,32 +148,31 @@ class TestUiCertification(HttpCaseWithUserDemo):
                     'constr_mandatory': True,
                     'suggested_answer_ids': [
                         (0, 0, {
-                            'value': '20$',
+                            'value': '$20',
                             'sequence': 1,
                         }), (0, 0, {
-                            'value': '50$',
+                            'value': '$50',
                             'sequence': 2,
                         }), (0, 0, {
-                            'value': '80$',
+                            'value': '$80',
                             'sequence': 3,
                         }), (0, 0, {
-                            'value': '100$',
+                            'value': '$100',
                             'sequence': 4,
                             'is_correct': True,
                             'answer_score': 2,
                         }), (0, 0, {
-                            'value': '200$',
+                            'value': '$200',
                             'sequence': 5,
                         }), (0, 0, {
-                            'value': '300$',
+                            'value': '$300',
                             'sequence': 6,
                         })
                     ]
                 }), (0, 0, {
-                    'title': 'Select all the the products that sell for 100$ or more',
+                    'title': 'Select all the products that sell for $100 or more',
                     'sequence': 9,
                     'question_type': 'multiple_choice',
-                    'column_nb': '2',
                     'suggested_answer_ids': [
                         (0, 0, {
                             'value': 'Corner Desk Right Sit',
@@ -229,6 +226,46 @@ class TestUiCertification(HttpCaseWithUserDemo):
                             'sequence': 5,
                         })
                     ]
+                }), (0, 0, {
+                    'title': 'Policies',
+                    'sequence': 11,
+                    'is_page': True,
+                    'question_type': False,
+                    'description': """&lt;p&gt;Test your knowledge of our policies.&lt;/p&gt;""",
+                }), (0, 0, {
+                    'title': 'How many days is our money-back guarantee?',
+                    'sequence': 12,
+                    'question_type': 'numerical_box',
+                    'constr_mandatory': True,
+                    'is_scored_question': True,
+                    'answer_numerical_box': 30,
+                    'answer_score': 1,
+                }), (0, 0, {
+                    'title': 'If a customer purchases a product on 6 January 2020, what is the latest day we expect to ship it?',
+                    'sequence': 13,
+                    'question_type': 'date',
+                    'is_scored_question': True,
+                    'answer_date': '2020-01-08',
+                    'answer_score': 1,
+                }), (0, 0, {
+                    'title': 'If a customer purchases a 1 year warranty on 6 January 2020, when do we expect the warranty to expire?',
+                    'sequence': 14,
+                    'question_type': 'datetime',
+                    'is_scored_question': True,
+                    'answer_datetime': '2021-01-07 00:00:01',
+                    'answer_score': 1,
+                }), (0, 0, {
+                    'title': 'What day to you think is best for us to start having an annual sale (not rated)?',
+                    'sequence': 15,
+                    'question_type': 'date',
+                }), (0, 0, {
+                    'title': 'What day and time do you think most customers are most likely to call customer service (not rated)?',
+                    'sequence': 16,
+                    'question_type': 'datetime',
+                }), (0, 0, {
+                    'title': 'How many chairs do you think we should aim to sell in a year (not rated)?',
+                    'sequence': 17,
+                    'question_type': 'numerical_box',
                 })
             ]
         })

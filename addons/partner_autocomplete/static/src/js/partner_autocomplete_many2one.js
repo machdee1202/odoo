@@ -1,155 +1,119 @@
-odoo.define('partner.autocomplete.many2one', function (require) {
-'use strict';
+import { _t } from "@web/core/l10n/translation";
+import { registry } from "@web/core/registry";
+import { useService } from "@web/core/utils/hooks";
+import { computeM2OProps, Many2One } from "@web/views/fields/many2one/many2one";
+import { buildM2OFieldDescription, Many2OneField } from "@web/views/fields/many2one/many2one_field";
+import { Component } from "@odoo/owl";
+import { Many2XAutocomplete, useOpenMany2XRecord } from "@web/views/fields/relational_utils";
 
-var FieldMany2One = require('web.relational_fields').FieldMany2One;
-var core = require('web.core');
-var AutocompleteMixin = require('partner.autocomplete.Mixin');
-var field_registry = require('web.field_registry');
+import { usePartnerAutocomplete } from "@partner_autocomplete/js/partner_autocomplete_core";
+import { PartnerAutoComplete } from "@partner_autocomplete/js/partner_autocomplete_component";
 
-var _t = core._t;
+export class PartnerMany2XAutocomplete extends Many2XAutocomplete {
+    static components = {
+        ...super.components,
+        AutoComplete: PartnerAutoComplete,
+    };
+}
+export class PartnerMany2One extends Many2One {
+    static components = {
+        ...super.components,
+        Many2XAutocomplete: PartnerMany2XAutocomplete,
+    };
+}
 
-var PartnerField = FieldMany2One.extend(AutocompleteMixin, {
-    jsLibs: [
-        '/partner_autocomplete/static/lib/jsvat.js'
-    ],
+export class PartnerAutoCompleteMany2one extends Component {
+    static template = "partner_autocomplete.PartnerAutoCompleteMany2one";
+    static components = { Many2One: PartnerMany2One };
+    static props = { ...Many2OneField.props };
 
-    /**
-     * @override
-     */
-    init: function () {
-        this._super.apply(this, arguments);
-        this._addAutocompleteSource(this._searchSuggestions, {
-            placeholder: _t('Searching Autocomplete...'),
-            order: 20,
-            validation: this._validateSearchTerm,
+    setup() {
+        super.setup();
+        this.orm = useService("orm");
+        this.partnerAutocomplete = usePartnerAutocomplete();
+        this.openRecord = useOpenMany2XRecord({
+            resModel: this.props.record.fields[this.props.name].relation,
+            activeActions: {
+                create: this.props.canCreate,
+                createEdit: this.props.canCreateEdit,
+                write: this.props.canWrite,
+            },
+            isToMany: false,
+            onRecordSaved: (record) => this.props.record.update({
+                [this.props.name]: {
+                    id: record.resId,
+                    display_name: record.data.display_name || record.data.name,
+                },
+            }),
+            onRecordDiscarded: () => this.props.record.update(false),
+            fieldString: this.props.string || this.props.record.fields[this.props.name].string,
         });
+    }
 
-        this.additionalContext['show_vat'] = true;
-    },
+    validateSearchTerm(request) {
+        return request && request.length > 2;
+    }
 
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
-
-    /**
-     * Action : create popup form with pre-filled values from Autocomplete
-     *
-     * @param {Object} company
-     * @returns {Promise}
-     * @private
-     */
-    _createPartner: function (company) {
-        var self = this;
-        self.$('input').val('');
-
-        return self._getCreateData(company).then(function (data){
-            var context = {
-                'default_is_company': true
-            };
-            _.each(data.company, function (val, key) {
-                context['default_' + key] = val && val.id ? val.id : val;
-            });
-
-            // if(data.company.street_name && !data.company.street_number) context.default_street_number = '';
-            if (data.logo) context.default_image = data.logo;
-
-            return self._searchCreatePopup("form", false, context);
-        });
-    },
-
-    /**
-     * Returns the display_name from a string which contains it but was altered
-     * as a result of the show_vat option.
-     * Note that the split is done on a 'figuredash', not a standard dash.
-     *
-     * @private
-     * @param {string} value
-     * @returns {string} display_name without TaxID
-     */
-    _getDisplayNameWithoutVAT: function (value) {
-        return value.split(' ‒ ')[0];
-    },
-
-    /**
-     * Modify autocomplete results rendering
-     * Add logo in the autocomplete results if logo is provided
-     *
-     * @private
-     */
-    _modifyAutompleteRendering: function (){
-        var api = this.$input.data('ui-autocomplete');
-        // FIXME: bugfix to prevent traceback in mobile apps due to override
-        // of Many2one widget with native implementation.
-        if (!api) {
-            return;
-        }
-        api._renderItem = function(ul, item){
-            ul.addClass('o_partner_autocomplete_dropdown');
-            var $a = $('<a/>')["html"](item.label);
-            if (item.logo){
-                var $img = $('<img/>').attr('src', item.logo);
-                $a.append($img);
-            }
-
-            return $("<li></li>")
-                .data("item.autocomplete",item)
-                .append($a)
-                .appendTo(ul)
-                .addClass(item.classname);
+    get m2oProps() {
+        return {
+            ...computeM2OProps(this.props),
+            otherSources: this.sources,
         };
-    },
+    }
 
-    /**
-     * @override
-     * @private
-     */
-    _renderEdit: function (){
-        this.m2o_value = this._getDisplayNameWithoutVAT(this.m2o_value);
-        this._super.apply(this, arguments);
-        this._modifyAutompleteRendering();
-    },
-
-    /**
-     * Query Autocomplete and add results to the popup
-     *
-     * @override
-     * @param search_val {string}
-     * @returns {Promise}
-     * @private
-     */
-    _searchSuggestions: function (search_val) {
-        var self = this;
-        return new Promise(function (resolve, reject) {
-            if (self._isOnline()) {
-
-                self._autocomplete(search_val).then(function (suggestions) {
-                    var choices = [];
-                    if (suggestions && suggestions.length) {
-                        _.each(suggestions, function (suggestion) {
-                            var label = '<i class="fa fa-magic text-muted"/> ';
-                            label += _.str.sprintf('%s, <span class="text-muted">%s</span>', suggestion.label, suggestion.description);
-
-                            choices.push({
-                                label: label,
-                                action: function () {
-                                    self._createPartner(suggestion);
-                                },
-                                logo: suggestion.logo,
-                                classname: 'o_partner_autocomplete_dropdown_item',
-                            });
-                        });
+    get sources() {
+        if (!this.props.canCreate) {
+            return [];
+        }
+        return [
+            {
+                options: async (request, shouldSearchWorldWide) => {
+                    if (this.validateSearchTerm(request)) {
+                        let queryCountryId = false;
+                    	if (shouldSearchWorldWide){
+							queryCountryId = 0;
+						}
+                        const suggestions = await this.partnerAutocomplete.autocomplete(request, queryCountryId);
+                        return suggestions.map((suggestion) => ({
+                            cssClass: "partner_autocomplete_dropdown_many2one",
+                            data: suggestion,
+                            label: suggestion.name,
+                            onSelect: () => this.onSelectPartnerAutocompleteOption(suggestion),
+                        }));
                     }
+                    else {
+                        return [];
+                    }
+                },
+                optionSlot: "partnerOption",
+                placeholder: _t("Searching Autocomplete..."),
+            },
+        ];
+    }
 
-                    resolve(choices);
-                });
-            } else {
-               resolve([]);
-            }
-        });
-    },
-});
+    async onSelectPartnerAutocompleteOption(option) {
+        const data = await this.partnerAutocomplete.getCreateData(option);
+		if (!data?.company) {
+			return;
+		}
+        let context = {
+            'default_is_company': true
+        };
 
-field_registry.add('res_partner_many2one', PartnerField);
+        for (const [key, val] of Object.entries(data.company)) {
+            context['default_' + key] = val && val.id ? val.id : val;
+        }
 
-return PartnerField;
-});
+        if (data.logo) {
+            context.default_image_1920 = data.logo;
+        }
+
+        return this.openRecord({ context });
+    }
+}
+
+export const PartnerAutoCompleteMany2oneField = {
+    ...buildM2OFieldDescription(PartnerAutoCompleteMany2one),
+};
+
+registry.category("fields").add("res_partner_many2one", PartnerAutoCompleteMany2oneField);

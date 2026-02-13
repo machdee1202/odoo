@@ -1,25 +1,26 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 {
     'name': 'Skills Certification',
-    'category': 'Hidden',
-    'version': '1.0',
-    'summary': 'Add certification to resumé of your employees',
+    'category': 'Human Resources/Employees',
+    'summary': 'Add certification to resume of your employees',
     'description':
         """
 Certification and Skills for HR
 ===============================
 
-This module adds certification to resumé for employees.
+This module adds certification to resume for employees.
         """,
     'depends': ['hr_skills', 'survey'],
     'data': [
-        'views/hr_templates.xml',
         'data/hr_resume_data.xml',
-    ],
-    'qweb': [
-        'static/src/xml/resume_templates.xml',
+        'views/hr_templates.xml',
+        'views/survey_survey_views.xml',
     ],
     'auto_install': True,
+    'demo': [
+        'data/hr_resume_demo.xml',
+    ],
+    'author': 'Odoo S.A.',
+    'license': 'LGPL-3',
 }

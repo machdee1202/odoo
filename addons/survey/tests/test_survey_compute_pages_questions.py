@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+from odoo.tests import tagged
+
 from odoo.addons.survey.tests import common
 
 
+@tagged('at_install', '-post_install')  # LEGACY at_install
 class TestSurveyComputePagesQuestions(common.TestSurveyCommon):
     def test_compute_pages_questions(self):
-        with self.with_user(self.survey_manager):
+        with self.with_user('survey_manager'):
             survey = self.env['survey.survey'].create({
                 'title': 'Test compute survey',
-                'state': 'open',
             })
 
             page_0 = self.env['survey.question'].create({
                 'is_page': True,
+                'question_type': False,
                 'sequence': 1,
                 'title': 'P1',
                 'survey_id': survey.id
@@ -26,6 +29,7 @@ class TestSurveyComputePagesQuestions(common.TestSurveyCommon):
 
             page_1 = self.env['survey.question'].create({
                 'is_page': True,
+                'question_type': False,
                 'sequence': 7,
                 'title': 'P2',
                 'survey_id': survey.id,

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# ruff: noqa: F821
+# (ruff don't see read variables from release.py)
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 from os.path import join, dirname
 
 
@@ -19,50 +21,56 @@ setup(
     classifiers=[c for c in classifiers.split('\n') if c],
     license=license,
     scripts=['setup/odoo'],
-    packages=find_packages(),
+    packages=find_namespace_packages(),
     package_dir={'%s' % lib_name: 'odoo'},
     include_package_data=True,
     install_requires=[
+        'asn1crypto',
         'babel >= 1.0',
-        'decorator',
+        'cbor2',
+        'chardet',
+        'cryptography',
         'docutils',
-        'feedparser',
+        'geoip2',
         'gevent',
-        'html2text',
+        'greenlet',
+        'idna',
         'Jinja2',
         'lxml',  # windows binary http://www.lfd.uci.edu/~gohlke/pythonlibs/
+        'lxml_html_clean',
         'libsass',
-        'mako',
-        'mock',
+        'MarkupSafe',
+        'num2words',
         'ofxparse',
+        'openpyxl',
         'passlib',
         'pillow',  # windows binary http://www.lfd.uci.edu/~gohlke/pythonlibs/
         'polib',
         'psutil',  # windows binary code.google.com/p/psutil/downloads/list
         'psycopg2 >= 2.2',
-        'pydot',
-        'pyparsing',
-        'pypdf2',
+        'pyopenssl',
+        'PyPDF2',
         'pyserial',
         'python-dateutil',
-        'pytz',
+        'python-stdnum',
         'pyusb >= 1.0.0b1',
         'qrcode',
         'reportlab',  # windows binary pypi.python.org/pypi/reportlab
+        'rjsmin',
         'requests',
-        'zeep',
-        'vatnumber',
+        'urllib3',
         'vobject',
         'werkzeug',
+        'xlrd',
         'xlsxwriter',
         'xlwt',
+        'zeep',
     ],
-    python_requires='>=3.6',
+    python_requires='>=' + ".".join(map(str, MIN_PY_VERSION)),
     extras_require={
-        'ldap': ['pyldap'],
-        'SSL': ['pyopenssl'],
+        'ldap': ['python-ldap'],
     },
     tests_require=[
-        'mock',
+        'freezegun',
     ],
 )

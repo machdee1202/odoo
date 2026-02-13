@@ -1,19 +1,29 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
     'name': 'POS Adyen',
-    'version': '1.0',
-    'category': 'Sales/Point Of Sale',
+    'category': 'Sales/Point of Sale',
     'sequence': 6,
     'summary': 'Integrate your POS with an Adyen payment terminal',
-    'description': '',
     'data': [
-        'views/pos_config_views.xml',
+        'views/res_config_settings_views.xml',
         'views/pos_payment_method_views.xml',
-        'views/point_of_sale_assets.xml',
     ],
-    'depends': ['point_of_sale'],
-    'qweb': ['static/src/xml/pos.xml'],
-    'installable': True,
-    'license': 'OEEL-1',
+    'depends': ['point_of_sale', 'payment_adyen'],
+    'assets': {
+        'point_of_sale._assets_pos': [
+            'pos_adyen/static/src/**/*',
+        ],
+        'point_of_sale.payment_terminals': [
+            'pos_adyen/static/src/app/utils/payment/payment_adyen.js',
+            'pos_adyen/static/src/app/models/pos_payment.js',
+        ],
+        'web.assets_tests': [
+            'pos_adyen/static/tests/tours/**/*',
+        ],
+        'web.assets_unit_tests': [
+            'pos_adyen/static/tests/unit/data/**/*'
+        ],
+    },
+    'author': 'Odoo S.A.',
+    'license': 'LGPL-3',
 }

@@ -2,31 +2,27 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo.addons.mail.tests.common import mail_new_test_user
-from odoo.tests.common import TransactionCase, users, warmup
+from odoo.addons.test_mail.tests.test_performance import BaseMailPerformance
+from odoo.tests.common import users, warmup
 from odoo.tests import tagged
 from odoo.tools import mute_logger
 
 
-class TestMassMailPerformanceBase(TransactionCase):
+class TestMassMailPerformanceBase(BaseMailPerformance):
 
-    def setUp(self):
-        super(TestMassMailPerformanceBase, self).setUp()
+    @classmethod
+    def setUpClass(cls):
+        super(TestMassMailPerformanceBase, cls).setUpClass()
 
-        self.user_employee = mail_new_test_user(
-            self.env, login='emp',
-            groups='base.group_user',
-            name='Ernest Employee', notification_type='inbox')
-
-        self.user_marketing = mail_new_test_user(
-            self.env, login='marketing',
+        cls.user_marketing = mail_new_test_user(
+            cls.env,
             groups='base.group_user,mass_mailing.group_mass_mailing_user',
-            name='Martial Marketing', signature='--\nMartial')
+            login='marketing',
+            name='Martial Marketing',
+            signature='--\nMartial'
+        )
 
-        # patch registry to simulate a ready environment
-        self.patch(self.env.registry, 'ready', True)
-
-
-@tagged('mail_performance')
+@tagged('mail_performance', 'post_install', '-at_install')
 class TestMassMailPerformance(TestMassMailPerformanceBase):
 
     def setUp(self):
@@ -35,7 +31,7 @@ class TestMassMailPerformance(TestMassMailPerformanceBase):
             'name': 'Recipient %s' % x,
             'email_from': 'Recipient <rec.%s@example.com>' % x,
         } for x in range(0, 50)]
-        self.mm_recs = self.env['mass.mail.test'].create(values)
+        self.mm_recs = self.env['mailing.performance'].create(values)
 
     @users('__system__', 'marketing')
     @warmup
@@ -45,19 +41,26 @@ class TestMassMailPerformance(TestMassMailPerformanceBase):
             'name': 'Test',
             'subject': 'Test',
             'body_html': '<p>Hello <a role="button" href="https://www.example.com/foo/bar?baz=qux">quux</a><a role="button" href="/unsubscribe_from_list">Unsubscribe</a></p>',
-            'reply_to_mode': 'email',
-            'mailing_model_id': self.ref('test_mass_mailing.model_mass_mail_test'),
+            'reply_to_mode': 'new',
+            'mailing_model_id': self.ref('test_mass_mailing.model_mailing_performance'),
             'mailing_domain': [('id', 'in', self.mm_recs.ids)],
         })
 
-        with self.assertQueryCount(__system__=2261, marketing=2261):
+        # runbot needs +101 compared to local
+        with (
+            self.mock_mail_gateway(mail_unlink_sent=True),
+            self.assertQueryCount(__system__=1379, marketing=1383),  # 1227, 1229
+        ):
             mailing.action_send_mail()
 
         self.assertEqual(mailing.sent, 50)
         self.assertEqual(mailing.delivered, 50)
 
+        mails = self.env['mail.mail'].sudo().search([('mailing_id', '=', mailing.id)])
+        self.assertFalse(mails, 'Should have auto-deleted the <mail.mail>')
 
-@tagged('mail_performance')
+
+@tagged('mail_performance', 'post_install', '-at_install')
 class TestMassMailBlPerformance(TestMassMailPerformanceBase):
 
     def setUp(self):
@@ -68,13 +71,13 @@ class TestMassMailBlPerformance(TestMassMailPerformanceBase):
             'name': 'Recipient %s' % x,
             'email_from': 'Recipient <rec.%s@example.com>' % x,
         } for x in range(0, 62)]
-        self.mm_recs = self.env['mass.mail.test.bl'].create(values)
+        self.mm_recs = self.env['mailing.performance.blacklist'].create(values)
 
         for x in range(1, 13):
             self.env['mail.blacklist'].create({
                 'email': 'rec.%s@example.com' % (x * 5)
             })
-        self.env['mass.mail.test.bl'].flush()
+        self.env.flush_all()
 
     @users('__system__', 'marketing')
     @warmup
@@ -84,13 +87,19 @@ class TestMassMailBlPerformance(TestMassMailPerformanceBase):
             'name': 'Test',
             'subject': 'Test',
             'body_html': '<p>Hello <a role="button" href="https://www.example.com/foo/bar?baz=qux">quux</a><a role="button" href="/unsubscribe_from_list">Unsubscribe</a></p>',
-            'reply_to_mode': 'email',
-            'mailing_model_id': self.ref('test_mass_mailing.model_mass_mail_test_bl'),
+            'reply_to_mode': 'new',
+            'mailing_model_id': self.ref('test_mass_mailing.model_mailing_performance_blacklist'),
             'mailing_domain': [('id', 'in', self.mm_recs.ids)],
         })
 
-        with self.assertQueryCount(__system__=2636, marketing=2636):
+        # runbot needs +153 compared to local
+        with self.assertQueryCount(__system__=1410, marketing=1417):  # 1258, 1261
             mailing.action_send_mail()
 
         self.assertEqual(mailing.sent, 50)
         self.assertEqual(mailing.delivered, 50)
+        self.assertEqual(mailing.canceled, 12)
+
+        mail_mail_count = len(self.env['mail.mail'].sudo().search([('mailing_id', '=', mailing.id)]))
+        self.assertEqual(mail_mail_count, 0,
+                         "Mail_mail for blacklisted emails mustn't have been created and others must have been deleted")

@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 
-from odoo.tests import common
+from odoo.tests import tagged, common
 
 
+@tagged('at_install', '-post_install')  # LEGACY at_install
 class TestStockLocationSearch(common.TransactionCase):
-    def setUp(self):
-        super(TestStockLocationSearch, self).setUp()
-        self.location = self.env['stock.location']
-        self.stock_location = self.env.ref('stock.stock_location_stock')
-        self.sublocation = self.env['stock.location'].create({
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.location = cls.env['stock.location']
+        cls.stock_location = cls.env.ref('stock.stock_location_stock')
+        cls.sublocation = cls.env['stock.location'].create({
             'name': 'Shelf 2',
             'barcode': 1201985,
-            'location_id': self.stock_location.id
+            'location_id': cls.stock_location.id
         })
-        self.location_barcode_id = self.sublocation.id
-        self.barcode = self.sublocation.barcode
-        self.name = self.sublocation.name
+        cls.location_barcode_id = cls.sublocation.id
+        cls.barcode = cls.sublocation.barcode
+        cls.name = cls.sublocation.name
 
     def test_10_location_search_by_barcode(self):
         """Search stock location by barcode"""

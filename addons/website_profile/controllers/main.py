@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-import base64
+from urllib.parse import urlsplit
 import werkzeug
 import werkzeug.exceptions
 import werkzeug.urls
@@ -11,9 +10,13 @@ import math
 from dateutil.relativedelta import relativedelta
 from operator import itemgetter
 
-from odoo import fields, http, modules, tools
+from odoo import _, fields, http, tools
+from odoo.exceptions import UserError
+from odoo.fields import Domain
 from odoo.http import request
-from odoo.osv import expression
+from odoo.tools.translate import LazyTranslate
+
+_lt = LazyTranslate(__name__)
 
 
 class WebsiteProfile(http.Controller):
@@ -35,29 +38,35 @@ class WebsiteProfile(http.Controller):
             return user.website_published and user.karma > 0
         return False
 
-    def _get_default_avatar(self):
-        img_path = modules.get_module_resource('web', 'static/src/img', 'placeholder.png')
-        with open(img_path, 'rb') as f:
-            return base64.b64encode(f.read())
-
     def _check_user_profile_access(self, user_id):
+        """ Takes a user_id and returns:
+            - (user record, False) when the user is granted access
+            - (False, str) when the user is denied access
+            Raises a Not Found Exception when the profile does not exist
+        """
         user_sudo = request.env['res.users'].sudo().browse(user_id)
         # User can access - no matter what - his own profile
         if user_sudo.id == request.env.user.id:
-            return user_sudo
-        if user_sudo.karma == 0 or not user_sudo.website_published or \
-            (user_sudo.id != request.session.uid and request.env.user.karma < request.website.karma_profile_min):
-            return False
-        return user_sudo
+            return user_sudo, False
+
+        # Profile being published is more specific than general karma requirement (check it first!)
+        if not user_sudo.website_published:
+            return False, _('This profile is private!')
+        elif not user_sudo.exists():
+            raise request.not_found()
+
+        elif request.env.user.karma < request.website.karma_profile_min:
+            return False, _("Not have enough karma to view other users' profile.")
+        return user_sudo, False
 
     def _prepare_user_values(self, **kwargs):
+        kwargs.pop('edit_translations', None) # avoid nuking edit_translations
         values = {
             'user': request.env.user,
             'is_public_user': request.website.is_public_user(),
             'validation_email_sent': request.session.get('validation_email_sent', False),
             'validation_email_done': request.session.get('validation_email_done', False),
         }
-        values.update(kwargs)
         return values
 
     def _prepare_user_profile_parameters(self, **post):
@@ -69,96 +78,79 @@ class WebsiteProfile(http.Controller):
             'user': user,
             'main_object': user,
             'is_profile_page': True,
-            'edit_button_url_param': '',
+            'can_edit_country': user.partner_id and user.partner_id._can_edit_country(),
         }
 
     @http.route([
         '/profile/avatar/<int:user_id>',
-    ], type='http', auth="public", website=True, sitemap=False)
-    def get_user_profile_avatar(self, user_id, field='image_256', width=0, height=0, crop=False, **post):
-        if field not in ('image_128', 'image_256'):
+    ], type='http', auth="public", website=True, sitemap=False, readonly=True)
+    def get_user_profile_avatar(self, user_id, field='avatar_256', width=0, height=0, crop=False, **post):
+        if field not in ('image_128', 'image_256', 'avatar_128', 'avatar_256'):
             return werkzeug.exceptions.Forbidden()
 
-        can_sudo = self._check_avatar_access(user_id, **post)
-        if can_sudo:
-            status, headers, image_base64 = request.env['ir.http'].sudo().binary_content(
-                model='res.users', id=user_id, field=field,
-                default_mimetype='image/png')
-        else:
-            status, headers, image_base64 = request.env['ir.http'].binary_content(
-                model='res.users', id=user_id, field=field,
-                default_mimetype='image/png')
-        if status == 301:
-            return request.env['ir.http']._response_by_status(status, headers, image_base64)
-        if status == 304:
-            return werkzeug.wrappers.Response(status=304)
+        if (int(width), int(height)) == (0, 0):
+            width, height = tools.image.image_guess_size_from_field_name(field)
 
-        if not image_base64:
-            image_base64 = self._get_default_avatar()
-            if not (width or height):
-                width, height = tools.image_guess_size_from_field_name(field)
+        can_sudo = self._check_avatar_access(int(user_id), **post)
+        return request.env['ir.binary']._get_image_stream_from(
+            request.env['res.users'].sudo(can_sudo).browse(int(user_id)),
+            field_name=field, width=int(width), height=int(height), crop=crop
+        ).get_response()
 
-        image_base64 = tools.image_process(image_base64, size=(int(width), int(height)), crop=crop)
+    def _prepare_url_from_info(self):
+        url_from = request.httprequest.headers.get('Referer')
+        url_current = request.httprequest.url
+        void_from_url = {'url_from_label': None, 'url_from': None}
+        if url_from and ((url_from_parsed := urlsplit(url_from)).netloc == urlsplit(url_current).netloc):
+            path = url_from_parsed.path
+            return next(
+                (
+                    {'url_from_label': label, 'url_from': url_from}
+                    for prefix, label in (('forum', _('Forum')), ('slides', _('All Courses')))
+                    if path == f'/{prefix}' or path.startswith(f'/{prefix}/')
+                ), void_from_url)
+        return void_from_url
 
-        content = base64.b64decode(image_base64)
-        headers = http.set_safe_image_headers(headers, content)
-        response = request.make_response(content, headers)
-        response.status_code = status
-        return response
-
-    @http.route(['/profile/user/<int:user_id>'], type='http', auth="public", website=True)
+    @http.route('/profile/user/<int:user_id>', type='http', auth='public', website=True, readonly=True)
     def view_user_profile(self, user_id, **post):
-        user = self._check_user_profile_access(user_id)
-        if not user:
-            return request.render("website_profile.private_profile")
-        values = self._prepare_user_values(**post)
+        user_sudo, denial_reason = self._check_user_profile_access(user_id)
+        if denial_reason:
+            return request.render('website_profile.profile_access_denied', {'denial_reason': denial_reason})
         params = self._prepare_user_profile_parameters(**post)
-        values.update(self._prepare_user_profile_values(user, **params))
+        values = {
+            **self._prepare_user_values(**post),
+            **self._prepare_user_profile_values(user_sudo, **params),
+            **self._prepare_url_from_info(),
+        }
         return request.render("website_profile.user_profile_main", values)
 
     # Edit Profile
     # ---------------------------------------------------
-    @http.route('/profile/edit', type='http', auth="user", website=True)
-    def view_user_profile_edition(self, **kwargs):
-        countries = request.env['res.country'].search([])
-        values = self._prepare_user_values(searches=kwargs)
-        values.update({
-            'email_required': kwargs.get('email_required'),
-            'countries': countries,
-            'url_param': kwargs.get('url_param'),
-        })
-        return request.render("website_profile.user_profile_edit_main", values)
-
     def _profile_edition_preprocess_values(self, user, **kwargs):
         values = {
             'name': kwargs.get('name'),
             'website': kwargs.get('website'),
             'email': kwargs.get('email'),
             'city': kwargs.get('city'),
-            'country_id': int(kwargs.get('country')) if kwargs.get('country') else False,
-            'website_description': kwargs.get('description'),
+            'country_id': kwargs.get('country_id'),
+            'website_description': kwargs.get('website_description'),
         }
 
-        if 'clear_image' in kwargs:
-            values['image_1920'] = False
-        elif kwargs.get('ufile'):
-            image = kwargs.get('ufile').read()
-            values['image_1920'] = base64.b64encode(image)
+        if 'image_1920' in kwargs:
+            values['image_1920'] = kwargs.get('image_1920')
 
-        if request.uid == user.id:  # the controller allows to edit only its own privacy settings; use partner management for other cases
-            values['website_published'] = kwargs.get('website_published') == 'True'
+        if request.env.uid == user.id:  # the controller allows to edit only its own privacy settings; use partner management for other cases
+            values['website_published'] = kwargs.get('website_published')
         return values
 
-    @http.route('/profile/user/save', type='http', auth="user", methods=['POST'], website=True)
+    @http.route('/profile/user/save', type='jsonrpc', auth='user', methods=['POST'], website=True)
     def save_edited_profile(self, **kwargs):
-        user = request.env.user
+        user_id = int(kwargs.get('user_id', 0))
+        user = request.env['res.users'].browse(user_id or request.env.uid)
         values = self._profile_edition_preprocess_values(user, **kwargs)
-        whitelisted_values = {key: values[key] for key in type(user).SELF_WRITEABLE_FIELDS if key in values}
-        user.write(whitelisted_values)
-        if kwargs.get('url_param'):
-            return werkzeug.utils.redirect("/profile/user/%d?%s" % (user.id, kwargs['url_param']))
-        else:
-            return werkzeug.utils.redirect("/profile/user/%d" % user.id)
+        if not user.partner_id._can_edit_country() and values.get('country_id') != user.partner_id.country_id.id:
+            raise UserError(_("Changing the country is not allowed once document(s) have been issued for your account. Please contact us directly for this operation."))
+        user.write(values)
 
     # Ranks and Badges
     # ---------------------------------------------------
@@ -166,9 +158,9 @@ class WebsiteProfile(http.Controller):
         """
         Hook for other modules to restrict the badges showed on profile page, depending of the context
         """
-        domain = [('website_published', '=', True)]
+        domain = Domain('website_published', '=', True)
         if 'badge_category' in kwargs:
-            domain = expression.AND([[('challenge_ids.challenge_category', '=', kwargs.get('badge_category'))], domain])
+            domain = Domain('challenge_ids.challenge_category', '=', kwargs.get('badge_category')) & domain
         return domain
 
     def _prepare_ranks_badges_values(self, **kwargs):
@@ -189,9 +181,12 @@ class WebsiteProfile(http.Controller):
         })
         return values
 
-    @http.route('/profile/ranks_badges', type='http', auth="public", website=True, sitemap=True)
+    @http.route('/profile/ranks_badges', type='http', auth="public", website=True, sitemap=True, readonly=True, list_as_website_content=_lt("Ranks and Badges"))
     def view_ranks_badges(self, **kwargs):
-        values = self._prepare_ranks_badges_values(**kwargs)
+        values = {
+            **self._prepare_ranks_badges_values(**kwargs),
+            **self._prepare_url_from_info(),
+        }
         return request.render("website_profile.rank_badge_main", values)
 
     # All Users Page
@@ -211,7 +206,7 @@ class WebsiteProfile(http.Controller):
         return user_values
 
     @http.route(['/profile/users',
-                 '/profile/users/page/<int:page>'], type='http', auth="public", website=True, sitemap=True)
+                 '/profile/users/page/<int:page>'], type='http', auth="public", website=True, sitemap=True, readonly=True, list_as_website_content=_lt("User Profiles"))
     def view_all_users_page(self, page=1, **kwargs):
         User = request.env['res.users']
         dom = [('karma', '>', 1), ('website_published', '=', True)]
@@ -224,24 +219,23 @@ class WebsiteProfile(http.Controller):
             'group_by': group_by or 'all',
         }
         if search_term:
-            dom = expression.AND([['|', ('name', 'ilike', search_term), ('company_id.name', 'ilike', search_term)], dom])
+            dom = Domain.AND([['|', ('name', 'ilike', search_term), ('partner_id.commercial_company_name', 'ilike', search_term)], dom])
 
         user_count = User.sudo().search_count(dom)
+        my_user = request.env.user
+        current_user_values = False
         if user_count:
             page_count = math.ceil(user_count / self._users_per_page)
             pager = request.website.pager(url="/profile/users", total=user_count, page=page, step=self._users_per_page,
-                                          scope=page_count if page_count < self._pager_max_pages else self._pager_max_pages)
+                                          scope=page_count if page_count < self._pager_max_pages else self._pager_max_pages,
+                                          url_args=kwargs)
 
             users = User.sudo().search(dom, limit=self._users_per_page, offset=pager['offset'], order='karma DESC')
             user_values = self._prepare_all_users_values(users)
 
             # Get karma position for users (only website_published)
             position_domain = [('karma', '>', 1), ('website_published', '=', True)]
-            if group_by:
-                position_map = self._get_user_tracking_karma_gain_position(position_domain, users.ids, group_by)
-            else:
-                position_results = request.env['res.users'].browse(users.ids)._get_karma_position(position_domain)
-                position_map = dict((user_data['user_id'], dict(user_data)) for user_data in position_results)
+            position_map = self._get_position_map(position_domain, users, group_by)
 
             max_position = max([user_data['karma_position'] for user_data in position_map.values()], default=1)
             for user in user_values:
@@ -250,15 +244,35 @@ class WebsiteProfile(http.Controller):
                 user['karma_gain'] = user_data.get('karma_gain_total', 0)
             user_values.sort(key=itemgetter('position'))
 
+            if my_user.website_published and my_user.karma and my_user.id not in users.ids:
+                # Need to keep the dom to search only for users that appear in the ranking page
+                current_user = User.sudo().search(Domain.AND([[('id', '=', my_user.id)], dom]))
+                if current_user:
+                    current_user_values = self._prepare_all_users_values(current_user)[0]
+
+                    user_data = self._get_position_map(position_domain, current_user, group_by).get(current_user.id, {})
+                    current_user_values['position'] = user_data.get('karma_position', 0)
+                    current_user_values['karma_gain'] = user_data.get('karma_gain_total', 0)
+
         else:
             user_values = []
             pager = {'page_count': 0}
-
         render_values.update({
             'top3_users': user_values[:3] if not search_term and page == 1 else [],
             'users': user_values,
-            'pager': pager})
+            'my_user': current_user_values,
+            'pager': pager,
+            **self._prepare_url_from_info(),
+        })
         return request.render("website_profile.users_page_main", render_values)
+
+    def _get_position_map(self, position_domain, users, group_by):
+        if group_by:
+            position_map = self._get_user_tracking_karma_gain_position(position_domain, users.ids, group_by)
+        else:
+            position_results = users._get_karma_position(position_domain)
+            position_map = dict((user_data['user_id'], dict(user_data)) for user_data in position_results)
+        return position_map
 
     def _get_user_tracking_karma_gain_position(self, domain, user_ids, group_by):
         """ Helper method computing boundaries to give to _get_tracking_karma_gain_position.
@@ -276,7 +290,7 @@ class WebsiteProfile(http.Controller):
     # User and validation
     # --------------------------------------------------
 
-    @http.route('/profile/send_validation_email', type='json', auth='user', website=True)
+    @http.route('/profile/send_validation_email', type='jsonrpc', auth='user', website=True)
     def send_validation_email(self, **kwargs):
         if request.env.uid != request.website.user_id.id:
             request.env.user._send_profile_validation_email(**kwargs)
@@ -291,7 +305,8 @@ class WebsiteProfile(http.Controller):
         url = kwargs.get('redirect_url', '/')
         return request.redirect(url)
 
-    @http.route('/profile/validate_email/close', type='json', auth='public', website=True)
+    @http.route('/profile/validate_email/close', type='jsonrpc', auth='public', website=True)
     def validate_email_done(self, **kwargs):
         request.session['validation_email_done'] = False
+        request.session['validation_email_sent'] = False
         return True

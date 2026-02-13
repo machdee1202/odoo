@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
-
-from odoo import fields, models, api, _
+from odoo import fields, models
+from odoo.tools import float_is_zero
 
 
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    stock_move_id = fields.Many2one('stock.move', string='Stock Move')
-    stock_valuation_layer_ids = fields.One2many('stock.valuation.layer', 'account_move_id', string='Stock Valuation Layer')
+    stock_move_ids = fields.One2many('stock.move', 'account_move_id', string='Stock Move')
+    inventory_closing = fields.Boolean(string='Inventory Closing', default=False)
+    closing_datetime = fields.Datetime(string='Closing Date')
 
     # -------------------------------------------------------------------------
     # OVERRIDE METHODS
@@ -15,55 +15,59 @@ class AccountMove(models.Model):
 
     def _get_lines_onchange_currency(self):
         # OVERRIDE
-        return self.line_ids.filtered(lambda l: not l.is_anglo_saxon_line)
+        return self.line_ids.filtered(lambda l: l.display_type != 'cogs')
 
-    def _reverse_move_vals(self, default_values, cancel=True):
-        # OVERRIDE
-        # Don't keep anglo-saxon lines if not cancelling an existing invoice.
-        move_vals = super(AccountMove, self)._reverse_move_vals(default_values, cancel=cancel)
-        if not cancel:
-            move_vals['line_ids'] = [vals for vals in move_vals['line_ids'] if not vals[2]['is_anglo_saxon_line']]
-        return move_vals
+    def copy_data(self, default=None):
+        # Don't keep anglo-saxon lines when copying a journal entry.
+        vals_list = super().copy_data(default=default)
 
-    def post(self):
+        if not self.env.context.get('move_reverse_cancel'):
+            for vals in vals_list:
+                if 'line_ids' in vals:
+                    vals['line_ids'] = [line_vals for line_vals in vals['line_ids']
+                                             if line_vals[0] != 0 or line_vals[2].get('display_type') != 'cogs']
+        return vals_list
+
+    def _post(self, soft=True):
         # OVERRIDE
 
         # Don't change anything on moves used to cancel another ones.
-        if self._context.get('move_reverse_cancel'):
-            return super(AccountMove, self).post()
+        if self.env.context.get('move_reverse_cancel'):
+            return super()._post(soft)
 
         # Create additional COGS lines for customer invoices.
-        self.env['account.move.line'].create(self._stock_account_prepare_anglo_saxon_out_lines_vals())
+        self.env['account.move.line'].create(self._stock_account_prepare_realtime_out_lines_vals())
 
         # Post entries.
-        res = super(AccountMove, self).post()
+        res = super()._post(soft)
 
-        # Reconcile COGS lines in case of anglo-saxon accounting with perpetual valuation.
-        self._stock_account_anglo_saxon_reconcile_valuation()
+        self.line_ids._get_stock_moves().filtered(lambda m: m.is_in)._set_value()
+
         return res
 
     def button_draft(self):
-        res = super(AccountMove, self).button_draft()
+        res = super().button_draft()
 
         # Unlink the COGS lines generated during the 'post' method.
-        self.mapped('line_ids').filtered(lambda line: line.is_anglo_saxon_line).unlink()
+        with self.env.protecting(self.env['account.move']._get_protected_vals({}, self)):
+            self.mapped('line_ids').filtered(lambda line: line.display_type == 'cogs').unlink()
         return res
 
     def button_cancel(self):
         # OVERRIDE
-        res = super(AccountMove, self).button_cancel()
+        res = super().button_cancel()
 
         # Unlink the COGS lines generated during the 'post' method.
         # In most cases it shouldn't be necessary since they should be unlinked with 'button_draft'.
         # However, since it can be called in RPC, better be safe.
-        self.mapped('line_ids').filtered(lambda line: line.is_anglo_saxon_line).unlink()
+        self.mapped('line_ids').filtered(lambda line: line.display_type == 'cogs').unlink()
         return res
 
     # -------------------------------------------------------------------------
     # COGS METHODS
     # -------------------------------------------------------------------------
 
-    def _stock_account_prepare_anglo_saxon_out_lines_vals(self):
+    def _stock_account_prepare_realtime_out_lines_vals(self):
         ''' Prepare values used to create the journal items (account.move.line) corresponding to the Cost of Good Sold
         lines (COGS) for customer invoices.
 
@@ -82,9 +86,9 @@ class AccountMove(models.Model):
         This method computes values used to make two additional journal items:
 
         ---------------------------------------------------------------
-        220000 Expenses                             | 9.0   |
+        500000 COGS (stock variation)               | 9.0   |
         ---------------------------------------------------------------
-        101130 Stock Interim Account (Delivered)    |       | 9.0
+        110100 Stock Account                        |       | 9.0
         ---------------------------------------------------------------
 
         Note: COGS are only generated for customer invoices except refund made to cancel an invoice.
@@ -92,130 +96,85 @@ class AccountMove(models.Model):
         :return: A list of Python dictionary to be passed to env['account.move.line'].create.
         '''
         lines_vals_list = []
+
+        price_unit_prec = self.env['decimal.precision'].precision_get('Product Price')
         for move in self:
-            if not move.is_sale_document(include_receipts=True) or not move.company_id.anglo_saxon_accounting:
+
+            # Make the loop multi-company safe when accessing models like product.product
+            move = move.with_company(move.company_id)
+
+            if not move.is_sale_document(include_receipts=True):
                 continue
 
+            anglo_saxon_price_ctx = move._get_anglo_saxon_price_ctx()
+
             for line in move.invoice_line_ids:
-
                 # Filter out lines being not eligible for COGS.
-                if line.product_id.type not in ('product', 'consu') or line.product_id.valuation != 'real_time':
+                if not line._eligible_for_stock_account() or line.product_id.valuation != 'real_time':
                     continue
-
                 # Retrieve accounts needed to generate the COGS.
                 accounts = line.product_id.product_tmpl_id.get_product_accounts(fiscal_pos=move.fiscal_position_id)
-                debit_interim_account = accounts['stock_output']
-                credit_expense_account = accounts['expense']
-                if not debit_interim_account or not credit_expense_account:
+                stock_account = accounts['stock_valuation']
+                credit_expense_account = accounts['expense'] or move.journal_id.default_account_id
+                if not stock_account or not credit_expense_account:
                     continue
 
                 # Compute accounting fields.
-                sign = -1 if move.type == 'out_refund' else 1
-                price_unit = line._stock_account_get_anglo_saxon_price_unit()
-                balance = sign * line.quantity * price_unit
+                sign = -1 if move.move_type == 'out_refund' else 1
+                price_unit = line.with_context(anglo_saxon_price_ctx)._get_cogs_value()
+                amount_currency = sign * line.product_uom_id._compute_quantity(line.quantity, line.product_id.uom_id) * price_unit
+
+                if move.currency_id.is_zero(amount_currency) or float_is_zero(price_unit, precision_digits=price_unit_prec):
+                    continue
 
                 # Add interim account line.
                 lines_vals_list.append({
-                    'name': line.name[:64],
+                    'name': line.name[:64] if line.name else '',
                     'move_id': move.id,
+                    'partner_id': move.commercial_partner_id.id,
                     'product_id': line.product_id.id,
                     'product_uom_id': line.product_uom_id.id,
                     'quantity': line.quantity,
                     'price_unit': price_unit,
-                    'debit': balance < 0.0 and -balance or 0.0,
-                    'credit': balance > 0.0 and balance or 0.0,
-                    'account_id': debit_interim_account.id,
-                    'analytic_account_id': line.analytic_account_id.id,
-                    'analytic_tag_ids': [(6, 0, line.analytic_tag_ids.ids)],
-                    'exclude_from_invoice_tab': True,
-                    'is_anglo_saxon_line': True,
+                    'amount_currency': -amount_currency,
+                    'account_id': stock_account.id,
+                    'display_type': 'cogs',
+                    'tax_ids': [],
+                    'cogs_origin_id': line.id,
                 })
 
                 # Add expense account line.
                 lines_vals_list.append({
-                    'name': line.name[:64],
+                    'name': line.name[:64] if line.name else '',
                     'move_id': move.id,
+                    'partner_id': move.commercial_partner_id.id,
                     'product_id': line.product_id.id,
                     'product_uom_id': line.product_uom_id.id,
                     'quantity': line.quantity,
                     'price_unit': -price_unit,
-                    'debit': balance > 0.0 and balance or 0.0,
-                    'credit': balance < 0.0 and -balance or 0.0,
+                    'amount_currency': amount_currency,
                     'account_id': credit_expense_account.id,
-                    'analytic_account_id': line.analytic_account_id.id,
-                    'analytic_tag_ids': [(6, 0, line.analytic_tag_ids.ids)],
-                    'exclude_from_invoice_tab': True,
-                    'is_anglo_saxon_line': True,
+                    'analytic_distribution': line.analytic_distribution,
+                    'display_type': 'cogs',
+                    'tax_ids': [],
+                    'cogs_origin_id': line.id,
                 })
         return lines_vals_list
 
-    def _stock_account_get_last_step_stock_moves(self):
-        """ To be overridden for customer invoices and vendor bills in order to
-        return the stock moves related to the invoices in self.
+    def _get_anglo_saxon_price_ctx(self):
+        """ To be overriden in modules overriding _get_cogs_value
+        to optimize computations that only depend on account.move and not account.move.line
         """
-        return self.env['stock.move']
+        return self.env.context
 
-    def _stock_account_anglo_saxon_reconcile_valuation(self, product=False):
-        """ Reconciles the entries made in the interim accounts in anglosaxon accounting,
-        reconciling stock valuation move lines with the invoice's.
-        """
-        for move in self:
-            if not move.is_invoice():
-                continue
-            if not move.company_id.anglo_saxon_accounting:
-                continue
+    def _get_invoiced_lot_values(self):
+        return []
 
-            stock_moves = move._stock_account_get_last_step_stock_moves()
-
-            if not stock_moves:
-                continue
-
-            products = product or move.mapped('invoice_line_ids.product_id')
-            for product in products:
-                if product.valuation != 'real_time':
-                    continue
-
-                # We first get the invoices move lines (taking the invoice and the previous ones into account)...
-                product_accounts = product.product_tmpl_id._get_product_accounts()
-                if move.is_sale_document():
-                    product_interim_account = product_accounts['stock_output']
-                else:
-                    product_interim_account = product_accounts['stock_input']
-
-                if product_interim_account.reconcile:
-                    # Search for anglo-saxon lines linked to the product in the journal entry.
-                    product_account_moves = move.line_ids.filtered(
-                        lambda line: line.product_id == product and line.account_id == product_interim_account and not line.reconciled)
-
-                    # Search for anglo-saxon lines linked to the product in the stock moves.
-                    product_stock_moves = stock_moves.filtered(lambda stock_move: stock_move.product_id == product)
-                    product_account_moves += product_stock_moves.mapped('account_move_ids.line_ids')\
-                        .filtered(lambda line: line.account_id == product_interim_account and not line.reconciled)
-
-                    # Reconcile.
-                    product_account_moves.reconcile()
-
-
-class AccountMoveLine(models.Model):
-    _inherit = 'account.move.line'
-
-    is_anglo_saxon_line = fields.Boolean(help="Technical field used to retrieve the anglo-saxon lines.")
-
-    def _get_computed_account(self):
-        # OVERRIDE to use the stock input account by default on vendor bills when dealing
-        # with anglo-saxon accounting.
-        self.ensure_one()
-        if self.product_id.type == 'product' \
-            and self.move_id.company_id.anglo_saxon_accounting \
-            and self.move_id.is_purchase_document():
-            fiscal_position = self.move_id.fiscal_position_id
-            accounts = self.product_id.product_tmpl_id.get_product_accounts(fiscal_pos=fiscal_position)
-            if accounts['stock_input']:
-                return accounts['stock_input']
-        return super(AccountMoveLine, self)._get_computed_account()
-
-    def _stock_account_get_anglo_saxon_price_unit(self):
-        self.ensure_one()
-        if not self.product_id:
-            return self.price_unit
-        return self.product_id._stock_account_get_anglo_saxon_price_unit(uom=self.product_uom_id)
+    def _extract_extra_invoiced_lot_values(self, lot):
+        lot.ensure_one()
+        # Compute lot properties
+        lot_properties = lot.product_id.lot_properties_definition
+        # Store the value of each property
+        for prop in lot_properties:
+            prop['value'] = lot.lot_properties.get(prop['name'])
+        return {'lot_properties': lot_properties}

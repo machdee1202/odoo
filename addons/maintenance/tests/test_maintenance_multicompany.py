@@ -3,10 +3,11 @@
 
 import time
 
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import tagged, TransactionCase
 from odoo.exceptions import AccessError
 
 
+@tagged('at_install', '-post_install')  # LEGACY at_install
 class TestEquipmentMulticompany(TransactionCase):
 
     def test_00_equipment_multicompany_user(self):
@@ -43,7 +44,7 @@ class TestEquipmentMulticompany(TransactionCase):
             'company_id': company_a.id,
             'login': 'e_equipment_manager',
             'email': 'eqmanager@yourcompany.example.com',
-            'groups_id': [(6, 0, [group_manager.id])],
+            'group_ids': [(6, 0, [group_manager.id])],
             'company_ids': [(6, 0, [company_a.id, company_b.id])]
         })
 
@@ -53,7 +54,7 @@ class TestEquipmentMulticompany(TransactionCase):
             'company_id': company_b.id,
             'login': 'emp',
             'email': 'empuser@yourcompany.example.com',
-            'groups_id': [(6, 0, [group_user.id])],
+            'group_ids': [(6, 0, [group_user.id])],
             'company_ids': [(6, 0, [company_b.id])]
         })
 
@@ -78,21 +79,21 @@ class TestEquipmentMulticompany(TransactionCase):
 
         # create equipment category for equipment manager
         category_1 = Category.with_user(equipment_manager).with_context(allowed_company_ids=cids).create({
-            'name': 'Monitors',
+            'name': 'Monitors - Test',
             'company_id': company_b.id,
             'technician_user_id': equipment_manager.id,
         })
 
         # create equipment category for equipment manager
         Category.with_user(equipment_manager).with_context(allowed_company_ids=cids).create({
-            'name': 'Computers',
+            'name': 'Computers - Test',
             'company_id': company_b.id,
             'technician_user_id': equipment_manager.id,
         })
 
         # create equipment category for equipment user
         Category.with_user(equipment_manager).create({
-            'name': 'Phones',
+            'name': 'Phones - Test',
             'company_id': company_a.id,
             'technician_user_id': equipment_manager.id,
         })
@@ -127,7 +128,7 @@ class TestEquipmentMulticompany(TransactionCase):
             'company_id': company_b.id,
             'owner_user_id': equipment_manager.id,
         })
-        # Now there are total 2 equipments created and can view by equipment_manager user
+        # Now there are total 2 equipment created and can view by equipment_manager user
         self.assertEqual(Equipment.with_user(equipment_manager).with_context(allowed_company_ids=cids).search_count([]), 2)
 
         # And there is total 1 equipment can be view by Normal User ( Which user is followers)

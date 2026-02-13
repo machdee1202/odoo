@@ -1,26 +1,29 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
 # * contacts
-# 
+#
 # Translators:
-# Martin Trigaux, 2018
-# Arma Gedonsky <armagedonsky@hot.ee>, 2018
-# Eneli Õigus <enelioigus@gmail.com>, 2018
-# Martin Aavastik <martin@avalah.ee>, 2018
-# 
+# Triine Aavik <triine@avalah.ee>, 2022
+# Arma Gedonsky <armagedonsky@hot.ee>, 2022
+# Martin Trigaux, 2022
+# Eneli Õigus <enelioigus@gmail.com>, 2022
+# JanaAvalah, 2023
+# Kristina Pešehodko <kristina@avalah.ee>, 2025.
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~11.5\n"
+"Project-Id-Version: Odoo Server 15.5alpha1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-09-18 09:49+0000\n"
-"PO-Revision-Date: 2018-08-24 09:17+0000\n"
-"Last-Translator: Martin Aavastik <martin@avalah.ee>, 2018\n"
-"Language-Team: Estonian (https://www.transifex.com/odoo/teams/41243/et/)\n"
+"POT-Creation-Date: 2025-10-08 18:37+0000\n"
+"PO-Revision-Date: 2025-10-21 05:30+0000\n"
+"Last-Translator: Kristina Pešehodko <kristina@avalah.ee>\n"
+"Language-Team: Estonian <https://translate.odoo.com/projects/odoo-19/"
+"contacts/et/>\n"
+"Language: et\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Language: et\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #. module: contacts
 #: model:ir.ui.menu,name:contacts.menu_action_res_partner_bank_form
@@ -36,7 +39,12 @@ msgstr "Pangad"
 #. module: contacts
 #: model:ir.ui.menu,name:contacts.res_partner_menu_config
 msgid "Configuration"
-msgstr "Seadistused"
+msgstr "Seadistus"
+
+#. module: contacts
+#: model:ir.model,name:contacts.model_res_partner
+msgid "Contact"
+msgstr "Kontakt"
 
 #. module: contacts
 #: model:ir.ui.menu,name:contacts.menu_partner_category_form
@@ -44,13 +52,7 @@ msgid "Contact Tags"
 msgstr "Kontaktide sildid"
 
 #. module: contacts
-#: model:ir.ui.menu,name:contacts.menu_partner_title_contact
-msgid "Contact Titles"
-msgstr "Kontaktide tiitlid"
-
-#. module: contacts
 #: model:ir.actions.act_window,name:contacts.action_contacts
-#: model:ir.actions.act_window,name:contacts.action_contacts_summary
 #: model:ir.ui.menu,name:contacts.menu_contacts
 #: model:ir.ui.menu,name:contacts.res_partner_menu_contacts
 msgid "Contacts"
@@ -68,9 +70,19 @@ msgstr "Riikide grupp"
 
 #. module: contacts
 #: model_terms:ir.actions.act_window,help:contacts.action_contacts
-#: model_terms:ir.actions.act_window,help:contacts.action_contacts_summary
-msgid "Create a contact in your address book"
-msgstr ""
+msgid "Create a Contact in your address book"
+msgstr "Looge aadressiraamatusse kontakt"
+
+#. module: contacts
+#: model:ir.model,website_form_label:contacts.model_res_partner
+msgid "Create a Customer"
+msgstr "Lisa klient"
+
+#. module: contacts
+#: model:ir.model.fields,field_description:contacts.field_res_partner__display_name
+#: model:ir.model.fields,field_description:contacts.field_res_users__display_name
+msgid "Display Name"
+msgstr "Kuvatav nimi"
 
 #. module: contacts
 #: model:ir.ui.menu,name:contacts.menu_country_state_partner
@@ -78,22 +90,27 @@ msgid "Fed. States"
 msgstr "Maakonnad"
 
 #. module: contacts
-#: model:ir.ui.menu,name:contacts.menu_localisation
-msgid "Localization"
-msgstr "Asukoht laos"
-
-#. module: contacts
-#: model_terms:ir.actions.act_window,help:contacts.action_contacts
-#: model_terms:ir.actions.act_window,help:contacts.action_contacts_summary
-msgid "Odoo helps you to easily track all activities related to a customer."
-msgstr ""
+#: model:ir.model.fields,field_description:contacts.field_res_partner__id
+#: model:ir.model.fields,field_description:contacts.field_res_users__id
+msgid "ID"
+msgstr "ID"
 
 #. module: contacts
 #: model:ir.ui.menu,name:contacts.res_partner_industry_menu
-msgid "Sectors of Activity"
-msgstr "Tegevusvaldkonnad"
+msgid "Industries"
+msgstr "Valdkonnad"
+
+#. module: contacts
+#: model:ir.ui.menu,name:contacts.menu_localisation
+msgid "Localization"
+msgstr "Asukoht"
+
+#. module: contacts
+#: model_terms:ir.actions.act_window,help:contacts.action_contacts
+msgid "Odoo helps you track all activities related to your contacts."
+msgstr "Odoo aitab jälgida kõiki teie kontaktidega seotud tegevusi."
 
 #. module: contacts
 #: model:ir.model,name:contacts.model_res_users
-msgid "Users"
-msgstr "Kasutajad"
+msgid "User"
+msgstr "Kasutaja"

@@ -1,95 +1,241 @@
-# -*- coding: utf-8 -*-
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
+from contextlib import contextmanager
+from freezegun import freeze_time
+from unittest.mock import patch
 
-from datetime import datetime, timedelta
-
-from odoo import fields
+from odoo import Command, fields
 from odoo.addons.mail.tests.common import mail_new_test_user
 from odoo.tests import common
 
 
-class TestEventCommon(common.SavepointCase):
+class EventCase(common.TransactionCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestEventCommon, cls).setUpClass()
+        super().setUpClass()
+
+        cls.admin_user = cls.env.ref('base.user_admin')
+        cls.admin_user.write({
+            'country_id': cls.env.ref('base.be').id,
+            'login': 'admin',
+            'notification_type': 'inbox',
+        })
+        cls.company_admin = cls.admin_user.company_id
+        # set country in order to format Belgian numbers
+        cls.company_admin.write({
+            'country_id': cls.env.ref('base.be').id,
+            'email': 'noreply@company.com',
+        })
 
         # Test users to use through the various tests
         cls.user_portal = mail_new_test_user(
-            cls.env, login='portal_test',
-            name='Patrick Portal', email='patrick.portal@test.example.com',
-            notification_type='email', company_id=cls.env.ref("base.main_company").id,
-            groups='base.group_portal')
+            cls.env,
+            company_id=cls.company_admin.id,
+            email='patrick.portal@test.example.com',
+            groups='base.group_portal',
+            login='portal_test',
+            name='Patrick Portal',
+            notification_type='email',
+            tz='Europe/Brussels',
+        )
+        cls.user_public = mail_new_test_user(
+            cls.env,
+            company_id=cls.company_admin.id,
+            email='paulette.public@test.example.com',
+            groups='base.group_public',
+            login='public_test',
+            name='Paulette Public',
+            notification_type='email',
+            tz='Europe/Brussels',
+        )
         cls.user_employee = mail_new_test_user(
-            cls.env, login='user_employee',
-            name='Eglantine Employee', email='eglantine.employee@test.example.com',
-            tz='Europe/Brussels', notification_type='inbox',
-            company_id=cls.env.ref("base.main_company").id,
+            cls.env,
+            company_id=cls.company_admin.id,
+            email='eglantine.employee@test.example.com',
             groups='base.group_user',
+            login='user_employee',
+            name='Eglantine Employee',
+            notification_type='inbox',
+            tz='Europe/Brussels',
+        )
+        cls.user_eventregistrationdesk = mail_new_test_user(
+            cls.env,
+            company_id=cls.company_admin.id,
+            email='ursule.eventregistration@test.example.com',
+            login='user_eventregistrationdesk',
+            groups='base.group_user,event.group_event_registration_desk',
+            name='Ursule EventRegistration',
+            notification_type='inbox',
+            tz='Europe/Brussels',
         )
         cls.user_eventuser = mail_new_test_user(
-            cls.env, login='user_eventuser',
-            name='Ursule EventUser', email='ursule.eventuser@test.example.com',
-            tz='Europe/Brussels', notification_type='inbox',
-            company_id=cls.env.ref("base.main_company").id,
+            cls.env,
+            company_id=cls.company_admin.id,
+            email='ursule.eventuser@test.example.com',
             groups='base.group_user,event.group_event_user',
+            login='user_eventuser',
+            name='Ursule EventUser',
+            notification_type='inbox',
+            tz='Europe/Brussels',
         )
         cls.user_eventmanager = mail_new_test_user(
-            cls.env, login='user_eventmanager',
-            name='Martine EventManager', email='martine.eventmanager@test.example.com',
-            tz='Europe/Brussels', notification_type='inbox',
-            company_id=cls.env.ref("base.main_company").id,
+            cls.env,
+            company_id=cls.company_admin.id,
+            email='martine.eventmanager@test.example.com',
             groups='base.group_user,event.group_event_manager',
+            login='user_eventmanager',
+            name='Martine EventManager',
+            notification_type='inbox',
+            tz='Europe/Brussels',
         )
 
-        cls.customer = cls.env['res.partner'].create({
+        cls.event_organizer = cls.env['res.partner'].create({
+            'city': 'Bruxelles',
+            'country_id': cls.env.ref('base.be').id,
+            'email': 'organizer@example.com',
+            'name': 'Organizer',
+            'phone': '+32455123456',
+            'street': 'Organizer Street',
+        })
+        cls.event_customer = cls.env['res.partner'].create({
             'name': 'Constantin Customer',
-            'email': 'constantin@example.com',
+            'email': 'constantin@test.example.com',
             'country_id': cls.env.ref('base.be').id,
             'phone': '0485112233',
         })
-        cls.event_type_complex = cls.env['event.type'].create({
-            'name': 'Update Type',
-            'auto_confirm': True,
-            'is_online': False,
-            'has_seats_limitation': True,
-            'default_registration_min': 10,
-            'default_registration_max': 30,
-            'use_timezone': True,
-            'default_timezone': 'Europe/Paris',
-            'use_hashtag': True,
-            'default_hashtag': 'amazing',
-            'use_mail_schedule': True,
-            'event_type_mail_ids': [
-                (0, 0, {  # right at subscription
-                    'interval_unit': 'now',
-                    'interval_type': 'after_sub',
-                    'template_id': cls.env['ir.model.data'].xmlid_to_res_id('event.event_subscription')}),
-                (0, 0, {  # 1 days before event
-                    'interval_nbr': 1,
-                    'interval_unit': 'days',
-                    'interval_type': 'before_event',
-                    'template_id': cls.env['ir.model.data'].xmlid_to_res_id('event.event_reminder')}),
-            ],
+        cls.event_customer2 = cls.env['res.partner'].create({
+            'name': 'Constantin Customer 2',
+            'email': 'constantin2@test.example.com',
+            'country_id': cls.env.ref('base.be').id,
+            'phone': '0456987654',
         })
-        cls.event_0 = cls.env['event.event'].create({
-            'name': 'TestEvent',
-            'auto_confirm': True,
-            'date_begin': fields.Datetime.to_string(datetime.today() + timedelta(days=1)),
-            'date_end': fields.Datetime.to_string(datetime.today() + timedelta(days=15)),
-            'date_tz': 'Europe/Brussels',
+        cls.reference_now = fields.Datetime.from_string('2022-09-05 15:11:34')
+        cls.event_type_questions = cls.env['event.type'].create({
+            'name': 'Update Type',
+            'has_seats_limitation': True,
+            'seats_max': 30,
+            'default_timezone': 'Europe/Paris',
+            'event_type_ticket_ids': [],
+            'event_type_mail_ids': [],
         })
 
-        # set country in order to format belgium numbers
-        cls.event_0.company_id.write({'country_id': cls.env.ref('base.be').id})
+        cls.event_question_1 = cls.env['event.question'].create({
+            'title': 'Question1',
+            'question_type': 'simple_choice',
+            'event_type_ids': [Command.set(cls.event_type_questions.ids)],
+            'once_per_order': False,
+            'answer_ids': [
+                (0, 0, {'name': 'Q1-Answer1'}),
+                (0, 0, {'name': 'Q1-Answer2'})
+            ],
+        })
+        cls.event_question_2 = cls.env['event.question'].create({
+            'title': 'Question2',
+            'question_type': 'simple_choice',
+            'event_type_ids': [Command.set(cls.event_type_questions.ids)],
+            'once_per_order': True,
+            'answer_ids': [
+                (0, 0, {'name': 'Q2-Answer1'}),
+                (0, 0, {'name': 'Q2-Answer2'})
+            ],
+        })
+        cls.event_question_3 = cls.env['event.question'].create({
+            'title': 'Question3',
+            'question_type': 'text_box',
+            'event_type_ids': [Command.set(cls.event_type_questions.ids)],
+            'once_per_order': True,
+        })
 
     @classmethod
     def _create_registrations(cls, event, reg_count):
         # create some registrations
+        create_date = fields.Datetime.now()
         registrations = cls.env['event.registration'].create([{
+            'create_date': create_date,
             'event_id': event.id,
-            'name': 'Test Registration %s' % x,
-            'email': '_test_reg_%s@example.com' % x,
-            'phone': '04560000%s%s' % (x, x),
-        } for x in range(0, reg_count)])
+            'name': f'Test Registration {idx}',
+            'email': f'_test_reg_{idx}@example.com',
+            'phone': f'04560000{idx}{idx}',
+        } for idx in range(0, reg_count)])
         return registrations
+
+    @classmethod
+    def _create_registrations_for_slot_and_ticket(cls, event, slot, ticket, count, **add_values):
+        return cls.env['event.registration'].create([
+            dict(
+                    {
+                    'email': f'{slot.id if slot else "NoSlot"}.{ticket.id if ticket else "NoTicket"}@test.example.com',
+                    'event_id': event.id,
+                    'event_slot_id': slot.id if slot else False,
+                    'event_ticket_id': ticket.id if ticket else False,
+                    'name': f'{slot.id if slot else "NoSlot"}.{ticket.id if ticket else "NoTicket"}',
+                }, **add_values
+            ) for idx in range(0, count)
+        ])
+
+    @classmethod
+    def _setup_test_reports(cls):
+        cls.test_report_view = cls.env["ir.ui.view"].create({
+            "arch_db": """
+<t t-call="web.html_container">
+    <t t-foreach="docs" t-as="registration">
+        <t t-call="web.external_layout">
+            <div class="page">
+                <p>This is a sample of an external report.</p>
+            </div>
+        </t>
+    </t>
+</t>""",
+            "key": "event_registration_test_report",
+            "name": "event_registration_test_report",
+            "type": "qweb",
+        })
+        cls.env["ir.model.data"].create({
+            "model": "ir.ui.view",
+            "module": "event",
+            "name": "event_registration_test_report",
+            "res_id": cls.test_report_view.id,
+        })
+
+        cls.test_report_action = cls.env['ir.actions.report'].create({
+            'name': 'Test Report on event.registration',
+            'model': 'event.registration',
+            'print_report_name': "f'TestReport for {object.name}'",
+            'report_type': 'qweb-pdf',
+            'report_name': 'event.event_registration_test_report',
+        })
+
+        cls.template_subscription = cls.env['mail.template'].create({
+            "body_html": """<div>Hello your registration to <t t-out="object.event_id.name"/> is confirmed.</div>""",
+            "email_from": "{{ (object.event_id.organizer_id.email_formatted or object.event_id.user_id.email_formatted or '') }}",
+            "lang": "{{ object.event_id.lang or object.partner_id.lang }}",
+            "model_id": cls.env['ir.model']._get_id("event.registration"),
+            "name": "Event: Registration Confirmation TEST",
+            "subject": "Confirmation for {{ object.event_id.name }}",
+            "report_template_ids": [(4, cls.test_report_action.id)],
+            "use_default_to": True,
+        })
+        cls.template_reminder = cls.env['mail.template'].create({
+            "body_html": """<div>Hello this is a reminder for your registration to  <t t-out="object.event_id.name"/>.</div>""",
+            "email_from": "{{ (object.event_id.organizer_id.email_formatted or object.event_id.user_id.email_formatted or '') }}",
+            "lang": "{{ object.event_id.lang or object.partner_id.lang }}",
+            "model_id": cls.env['ir.model']._get_id("event.registration"),
+            "name": "Event: Registration Reminder TEST",
+            "subject": "Reminder for {{ object.event_id.name }}: {{ object.event_date_range }}",
+            "report_template_ids": [(4, cls.test_report_action.id)],
+            "use_default_to": True,
+        })
+
+    def assertSchedulerCronTriggers(self, capture, call_at_list):
+        self.assertEqual(len(capture.records), len(call_at_list))
+        for record, call_at in zip(capture.records, call_at_list):
+            self.assertEqual(record.call_at, call_at.replace(microsecond=0))
+            self.assertEqual(record.cron_id, self.env.ref('event.event_mail_scheduler'))
+
+    @contextmanager
+    def mock_datetime_and_now(self, mock_dt):
+        """ Used when synchronization date (using env.cr.now()) is important
+        in addition to standard datetime mocks. Used mainly to detect sync
+        issues. """
+        with freeze_time(mock_dt), \
+             patch.object(self.env.cr, 'now', lambda: mock_dt):
+            yield

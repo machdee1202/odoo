@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-
-from odoo import fields, models
+from odoo import api, models
 
 
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
-    hr_presence_control_login = fields.Boolean(string="the system login (User status on chat)", config_parameter='hr_presence.hr_presence_control_login')
-    hr_presence_control_email = fields.Boolean(string="the amount of sent emails", config_parameter='hr_presence.hr_presence_control_email')
-    hr_presence_control_ip = fields.Boolean(string="the IP address", config_parameter='hr_presence.hr_presence_control_ip')
-    hr_presence_control_email_amount = fields.Integer(related="company_id.hr_presence_control_email_amount", readonly=False)
-    hr_presence_control_ip_list = fields.Char(related="company_id.hr_presence_control_ip_list", readonly=False)
+    @api.model_create_multi
+    def create(self, vals_list):
+        configs = super().create(vals_list)
+        if any(config.hr_presence_control_ip or config.hr_presence_control_email for config in configs):
+            self.env['hr.employee']._check_presence()
+        return configs

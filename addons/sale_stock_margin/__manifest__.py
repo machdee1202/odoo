@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 {
     'name': "Sale Stock Margin",
-    'summary': '',
+    'category': 'Sales/Sales',
     'description': 'Once the delivery is validated, update the cost on the SO to have an exact margin computation.',
-    'version': '0.1',
-    'depends': ['stock_account', 'sale_margin'],
-    'installable': True,
+    'depends': ['sale_stock', 'sale_margin'],
     'auto_install': True,
+    'author': 'Odoo S.A.',
+    'license': 'LGPL-3',
 }

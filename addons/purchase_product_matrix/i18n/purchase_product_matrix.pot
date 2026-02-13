@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server 19.1a1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-09 12:18+0000\n"
-"PO-Revision-Date: 2019-09-09 12:18+0000\n"
+"POT-Creation-Date: 2025-12-16 18:36+0000\n"
+"PO-Revision-Date: 2025-12-16 18:36+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -21,19 +21,15 @@ msgid "Attribute Values"
 msgstr ""
 
 #. module: purchase_product_matrix
-#. openerp-web
-#: code:addons/purchase_product_matrix/static/src/js/product_matrix_configurator.js:0
-#: code:addons/purchase_product_matrix/static/src/js/product_matrix_configurator.js:0
-#, python-format
-msgid "Edit Configuration"
+#: model:ir.model.fields,field_description:purchase_product_matrix.field_purchase_order__display_name
+#: model:ir.model.fields,field_description:purchase_product_matrix.field_purchase_order_line__display_name
+msgid "Display Name"
 msgstr ""
 
 #. module: purchase_product_matrix
-#. openerp-web
-#: code:addons/purchase_product_matrix/static/src/js/product_matrix_configurator.js:0
-#: code:addons/purchase_product_matrix/static/src/js/product_matrix_configurator.js:0
-#, python-format
-msgid "External Link"
+#. odoo-javascript
+#: code:addons/purchase_product_matrix/static/src/js/purchase_product_field.js:0
+msgid "Edit Configuration"
 msgstr ""
 
 #. module: purchase_product_matrix
@@ -52,20 +48,14 @@ msgid "Grid Update"
 msgstr ""
 
 #. module: purchase_product_matrix
-#: model:ir.model.fields,help:purchase_product_matrix.field_purchase_order__report_grids
-msgid ""
-"If set, the matrix of configurable products will be shown on the report of "
-"this order."
+#: model:ir.model.fields,field_description:purchase_product_matrix.field_purchase_order__id
+#: model:ir.model.fields,field_description:purchase_product_matrix.field_purchase_order_line__id
+msgid "ID"
 msgstr ""
 
 #. module: purchase_product_matrix
 #: model:ir.model.fields,field_description:purchase_product_matrix.field_purchase_order_line__is_configurable_product
 msgid "Is the product configurable?"
-msgstr ""
-
-#. module: purchase_product_matrix
-#: model:ir.model.fields,field_description:purchase_product_matrix.field_purchase_order__report_grids
-msgid "Print Variant Grids"
 msgstr ""
 
 #. module: purchase_product_matrix
@@ -102,7 +92,7 @@ msgstr ""
 #: model:ir.model.fields,help:purchase_product_matrix.field_purchase_order__grid
 msgid ""
 "Technical storage of grid. \n"
-"If grid_update, will be loaded on the SO. \n"
+"If grid_update, will be loaded on the PO. \n"
 "If not, represents the matrix to open."
 msgstr ""
 
@@ -112,8 +102,8 @@ msgid "Whether the grid field contains a new matrix to apply or not."
 msgstr ""
 
 #. module: purchase_product_matrix
+#. odoo-python
 #: code:addons/purchase_product_matrix/models/purchase.py:0
-#, python-format
 msgid ""
 "You cannot change the quantity of a product present in multiple purchase "
 "lines."

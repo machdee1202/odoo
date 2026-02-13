@@ -1,38 +1,67 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models, _
+from odoo import api, fields, models, _
+from odoo.fields import Command
 
 
 class StockWarehouse(models.Model):
     _inherit = 'stock.warehouse'
 
     subcontracting_to_resupply = fields.Boolean(
-        'Resupply Subcontractors', default=True,
-        help="Resupply subcontractors with components")
-
+        'Resupply Subcontractors', default=True)
     subcontracting_mto_pull_id = fields.Many2one(
-        'stock.rule', 'Subcontracting MTO Rule')
+        'stock.rule', 'Subcontracting MTO Rule', copy=False)
     subcontracting_pull_id = fields.Many2one(
-        'stock.rule', 'Subcontracting MTS Rule'
+        'stock.rule', 'Subcontracting MTS Rule', copy=False
     )
 
-    subcontracting_route_id = fields.Many2one('stock.location.route', 'Resupply Subcontractor', ondelete='restrict')
+    subcontracting_route_id = fields.Many2one('stock.route', 'Resupply Subcontractor', ondelete='restrict', copy=False)
 
     subcontracting_type_id = fields.Many2one(
         'stock.picking.type', 'Subcontracting Operation Type',
-        domain=[('code', '=', 'mrp_operation')])
+        domain=[('code', '=', 'mrp_operation')], copy=False)
+    subcontracting_resupply_type_id = fields.Many2one(
+        'stock.picking.type', 'Subcontracting Resupply Operation Type',
+        domain=[('code', '=', 'internal')], copy=False)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        res = super().create(vals_list)
+        # if new warehouse has resupply enabled, enable global route
+        if any([vals.get('subcontracting_to_resupply', False) for vals in vals_list]):
+            res._update_global_route_resupply_subcontractor()
+        return res
+
+    def write(self, vals):
+        res = super().write(vals)
+        # if all warehouses have resupply disabled, disable global route, until its enabled on a warehouse
+        if 'subcontracting_to_resupply' in vals or 'active' in vals:
+            if 'subcontracting_to_resupply' in vals:
+                # ignore when warehouse archived since it will auto-archive all of its rules
+                self._update_resupply_rules()
+            self._update_global_route_resupply_subcontractor()
+        return res
 
     def get_rules_dict(self):
-        result = super(StockWarehouse, self).get_rules_dict()
+        result = super().get_rules_dict()
         subcontract_location_id = self._get_subcontracting_location()
         for warehouse in self:
             result[warehouse.id].update({
                 'subcontract': [
-                    self.Routing(warehouse.lot_stock_id, subcontract_location_id, warehouse.out_type_id, 'pull'),
+                    self.Routing(warehouse.lot_stock_id, subcontract_location_id, warehouse.subcontracting_resupply_type_id, 'pull'),
                 ]
             })
         return result
+
+    def _update_global_route_resupply_subcontractor(self):
+        route_id = self._find_or_create_global_route('mrp_subcontracting.route_resupply_subcontractor_mto',
+                                           _('Resupply Subcontractor on Order'))
+        if not route_id.sudo().rule_ids.filtered(lambda r: r.active):
+            route_id.active = False
+        else:
+            route_id.active = True
+            self.route_ids = [Command.link(route_id.id)]
 
     def _get_routes_values(self):
         routes = super(StockWarehouse, self)._get_routes_values()
@@ -58,8 +87,8 @@ class StockWarehouse(models.Model):
         })
         return routes
 
-    def _get_global_route_rules_values(self):
-        rules = super(StockWarehouse, self)._get_global_route_rules_values()
+    def _generate_global_route_rules_values(self):
+        rules = super()._generate_global_route_rules_values()
         subcontract_location_id = self._get_subcontracting_location()
         production_location_id = self._get_production_location()
         rules.update({
@@ -70,11 +99,11 @@ class StockWarehouse(models.Model):
                     'company_id': self.company_id.id,
                     'action': 'pull',
                     'auto': 'manual',
-                    'route_id': self._find_global_route('stock.route_warehouse0_mto', _('Make To Order')).id,
+                    'route_id': self._find_or_create_global_route('stock.route_warehouse0_mto', _('Replenish on Order (MTO)')).id,
                     'name': self._format_rulename(self.lot_stock_id, subcontract_location_id, 'MTO'),
-                    'location_id': subcontract_location_id.id,
+                    'location_dest_id': subcontract_location_id.id,
                     'location_src_id': self.lot_stock_id.id,
-                    'picking_type_id': self.out_type_id.id
+                    'picking_type_id': self.subcontracting_resupply_type_id.id
                 },
                 'update_values': {
                     'active': self.subcontracting_to_resupply
@@ -87,12 +116,11 @@ class StockWarehouse(models.Model):
                     'company_id': self.company_id.id,
                     'action': 'pull',
                     'auto': 'manual',
-                    'route_id': self._find_global_route('mrp_subcontracting.route_resupply_subcontractor_mto',
-                                                        _('Resupply Subcontractor on Order')).id,
-                    'name': self._format_rulename(self.lot_stock_id, subcontract_location_id, False),
-                    'location_id': production_location_id.id,
+                    'route_id': self._find_or_create_global_route('mrp_subcontracting.route_resupply_subcontractor_mto', _('Resupply Subcontractor on Order')).id,
+                    'name': self._format_rulename(subcontract_location_id, production_location_id, False),
+                    'location_dest_id': production_location_id.id,
                     'location_src_id': subcontract_location_id.id,
-                    'picking_type_id': self.out_type_id.id
+                    'picking_type_id': self.subcontracting_resupply_type_id.id
                 },
                 'update_values': {
                     'active': self.subcontracting_to_resupply
@@ -109,16 +137,37 @@ class StockWarehouse(models.Model):
                 'code': 'mrp_operation',
                 'use_create_components_lots': True,
                 'sequence': next_sequence + 2,
-                'sequence_code': 'SBC',
                 'company_id': self.company_id.id,
             },
+            'subcontracting_resupply_type_id': {
+                'name': _('Resupply Subcontractor'),
+                'code': 'internal',
+                'use_create_lots': False,
+                'use_existing_lots': True,
+                'default_location_dest_id': self._get_subcontracting_location().id,
+                'sequence': next_sequence + 3,
+                'print_label': True,
+                'company_id': self.company_id.id,
+            }
         })
         return data, max_sequence + 4
 
-    def _get_sequence_values(self):
-        values = super(StockWarehouse, self)._get_sequence_values()
+    def _get_sequence_values(self, name=False, code=False):
+        values = super(StockWarehouse, self)._get_sequence_values(name=name, code=code)
+        count = self.env['ir.sequence'].search_count([('prefix', '=like', self.code + '/SBC%/%')])
         values.update({
-            'subcontracting_type_id': {'name': self.name + ' ' + _('Sequence subcontracting'), 'prefix': self.code + '/SBC/', 'padding': 5, 'company_id': self.company_id.id},
+            'subcontracting_type_id': {
+                'name': _('%(name)s Sequence subcontracting', name=self.name),
+                'prefix': self.code + '/' + ('SBC' + str(count) if count else 'SBC') + '/',
+                'padding': 5,
+                'company_id': self.company_id.id
+            },
+            'subcontracting_resupply_type_id': {
+                'name': _('%(name)s Sequence Resupply Subcontractor', name=self.name),
+                'prefix': self.code + '/' + ('RES' + str(count) if count else 'RES') + '/',
+                'padding': 5,
+                'company_id': self.company_id.id
+            },
         })
         return values
 
@@ -132,8 +181,34 @@ class StockWarehouse(models.Model):
                 'default_location_src_id': subcontract_location_id.id,
                 'default_location_dest_id': production_location_id.id,
             },
+            'subcontracting_resupply_type_id': {
+                'default_location_src_id': self.lot_stock_id.id,
+                'default_location_dest_id': subcontract_location_id.id,
+                'barcode': self.code.replace(" ", "").upper() + "RESUP",
+                'active': self.subcontracting_to_resupply and self.active
+            },
         })
         return data
 
     def _get_subcontracting_location(self):
         return self.company_id.subcontracting_location_id
+
+    def _get_subcontracting_locations(self):
+        return self.company_id.subcontracting_location_id.child_internal_location_ids
+
+    def _update_resupply_rules(self):
+        '''update (archive/unarchive) any warehouse subcontracting location resupply rules'''
+        subcontracting_locations = self._get_subcontracting_locations()
+        warehouses_to_resupply = self.filtered(lambda w: w.subcontracting_to_resupply and w.active)
+        if warehouses_to_resupply:
+            self.env['stock.rule'].with_context(active_test=False).search([
+                '&', ('picking_type_id', 'in', warehouses_to_resupply.subcontracting_resupply_type_id.ids),
+                '|', ('location_src_id', 'in', subcontracting_locations.ids),
+                ('location_dest_id', 'in', subcontracting_locations.ids)]).action_unarchive()
+
+        warehouses_not_to_resupply = self - warehouses_to_resupply
+        if warehouses_not_to_resupply:
+            self.env['stock.rule'].search([
+                '&', ('picking_type_id', 'in', warehouses_not_to_resupply.subcontracting_resupply_type_id.ids),
+                '|', ('location_src_id', 'in', subcontracting_locations.ids),
+                ('location_dest_id', 'in', subcontracting_locations.ids)]).action_archive()

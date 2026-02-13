@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-# Updating mako environement in order to be able to use slug
-try:
-    from odoo.addons.mail.models.mail_template import mako_template_env, mako_safe_template_env
-    from odoo.addons.http_routing.models.ir_http import slug
+from odoo.tools.rendering_tools import template_env_globals
+from odoo.http import request
 
-    mako_template_env.globals.update({
-        'slug': slug,
-    })
-
-    mako_safe_template_env.globals.update({
-        'slug': slug,
-    })
-except ImportError:
-    pass
+template_env_globals.update({
+    'slug': lambda value: request.env['ir.http']._slug(value)  # noqa: PLW0108
+})
 
 from . import controllers
 from . import models
+from . import utils
 from . import wizard

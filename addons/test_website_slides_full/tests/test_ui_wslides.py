@@ -4,63 +4,30 @@
 from dateutil.relativedelta import relativedelta
 from odoo.fields import Datetime
 from odoo import tests
+from odoo.tests.common import users
 from odoo.addons.website_slides.tests.test_ui_wslides import TestUICommon
+
 
 @tests.common.tagged('post_install', '-at_install')
 class TestUi(TestUICommon):
 
-    def test_course_certification_employee(self):
-        user_demo = self.user_demo
-        user_demo.flush()
-        # Avoid Billing/Shipping address page
-        user_demo.write({
-            'groups_id': [(5, 0), (4, self.env.ref('base.group_user').id)],
-            'street': '215 Vine St',
-            'city': 'Scranton',
-            'zip': '18503',
-            'country_id': self.env.ref('base.us').id,
-            'state_id': self.env.ref('base.state_us_39').id,
-            'phone': '+1 555-555-5555',
-            'email': 'admin@yourcompany.example.com',
-        })
+    def setUp(cls):
+        super().setUp()
 
-        # Specify Accounting Data
-        cash_journal = self.env['account.journal'].create({'name': 'Cash - Test', 'type': 'cash', 'code': 'CASH - Test'})
-        self.env['payment.acquirer'].search([('journal_id', '=', False)]).journal_id = cash_journal
-        a_recv = self.env['account.account'].create({
-            'code': 'X1012',
-            'name': 'Debtors - (test)',
-            'reconcile': True,
-            'user_type_id': self.env.ref('account.data_account_type_receivable').id,
-        })
-        a_pay = self.env['account.account'].create({
-            'code': 'X1111',
-            'name': 'Creditors - (test)',
-            'user_type_id': self.env.ref('account.data_account_type_payable').id,
-            'reconcile': True,
-        })
+        # =====================
+        # CERTIFICATION SURVEY
+        # =====================
 
-        Property = self.env['ir.property']
-        Property.set_default('property_account_receivable_id', 'res.partner', a_recv, self.env.company)
-        Property.set_default('property_account_payable_id', 'res.partner', a_pay, self.env.company)
-
-        product_course_channel_6 = self.env['product.product'].create({
-            'name': 'DIY Furniture Course',
-            'list_price': 100.0,
-            'type': 'service',
-            'is_published': True,
-        })
-
-        furniture_survey = self.env['survey.survey'].create({
+        cls.furniture_survey = cls.env['survey.survey'].create({
             'title': 'Furniture Creation Certification',
             'access_token': '5632a4d7-48cf-aaaa-8c52-2174d58cf50b',
-            'state': 'open',
             'access_mode': 'public',
+            'questions_layout': 'one_page',
             'users_can_go_back': True,
             'users_login_required': True,
             'scoring_type': 'scoring_with_answers',
             'certification': True,
-            'certification_mail_template_id': self.env.ref('survey.mail_template_certification').id,
+            'certification_mail_template_id': cls.env.ref('survey.mail_template_certification').id,
             'is_attempts_limited': True,
             'attempts_limit': 3,
             'description': "<p>Test your furniture knowledge!</p>",
@@ -69,6 +36,7 @@ class TestUi(TestUICommon):
                     'title': 'Furniture',
                     'sequence': 1,
                     'is_page': True,
+                    'question_type': False,
                     'description': "&lt;p&gt;Test your furniture knowledge!&lt;/p&gt",
                 }), (0, 0, {
                     'title': 'What type of wood is the best for furniture?',
@@ -96,7 +64,6 @@ class TestUi(TestUICommon):
                     'title': 'Select all the furniture shown in the video',
                     'sequence': 3,
                     'question_type': 'multiple_choice',
-                    'column_nb': '4',
                     'suggested_answer_ids': [
                         (0, 0, {
                             'value': 'Chair',
@@ -131,11 +98,24 @@ class TestUi(TestUICommon):
             ]
         })
 
-        slide_channel_demo_6_furn3 = self.env['slide.channel'].create({
+        # ===============
+        # COURSE PRODUCT
+        # ===============
+        cls.furniture_course_product = cls.env['product.product'].create({
+            'name': 'DIY Furniture Course',
+            'list_price': 100.0,
+            'type': 'service',
+            'is_published': True,
+        })
+
+        # ===============
+        # COURSE CHANNEL
+        # ===============
+        cls.furniture_course = cls.env['slide.channel'].create({
             'name': 'DIY Furniture - TEST',
-            'user_id': self.env.ref('base.user_admin').id,
+            'user_id': cls.env.ref('base.user_admin').id,
             'enroll': 'payment',
-            'product_id': product_course_channel_6.id,
+            'product_id': cls.furniture_course_product.id,
             'channel_type': 'training',
             'allow_comment': True,
             'promote_strategy': 'most_voted',
@@ -146,18 +126,59 @@ class TestUi(TestUICommon):
                 (0, 0, {
                     'name': 'DIY Furniture Certification',
                     'sequence': 1,
-                    'slide_type': 'certification',
+                    'slide_category': 'certification',
                     'category_id': False,
                     'is_published': True,
                     'is_preview': False,
                     'description': "It's time to test your knowledge!",
-                    'survey_id': furniture_survey.id,
+                    'survey_id': cls.furniture_survey.id,
                 })
             ]
         })
 
-        self.browser_js(
-            '/slides',
-            'odoo.__DEBUG__.services["web_tour.tour"].run("certification_member")',
-            'odoo.__DEBUG__.services["web_tour.tour"].tours.certification_member.ready',
-            login=user_demo.login)
+    @users("portal")
+    def test_course_certification_employee(self):
+        # use proper environment to test user dependent computes
+        self.furniture_course = self.env['slide.channel'].browse(self.furniture_course.id)
+
+        user_portal = self.env.user
+        sale_order_data = {
+            'partner_id': user_portal.partner_id.id,
+            'order_line': [
+                (0, 0, {
+                    'name': self.furniture_course_product.name,
+                    'product_id': self.furniture_course_product.id,
+                    'product_uom_qty': 1,
+                    'price_unit': self.furniture_course_product.list_price,
+                })
+            ]}
+
+        # =================
+        # FAILURE ATTEMPTS
+        # =================
+        self.env['sale.order'].sudo().create(sale_order_data).action_confirm()
+        # Member should have access to the course
+        self.assertTrue(self.furniture_course.is_member)
+        self.start_tour('/slides', 'certification_member_failure', login=user_portal.login)
+        # Member should no longer have access to the course
+        self.assertFalse(self.furniture_course.is_member)
+
+        # ===================
+        # SUCCESSFUL ATTEMPT
+        # ===================
+        self.env['sale.order'].sudo().create(sale_order_data).action_confirm()
+        # Member regains access to the course
+        self.assertTrue(self.furniture_course.is_member)
+
+        self.start_tour('/slides', 'certification_member_success', login=user_portal.login)
+
+        # ============
+        # EXTRA TESTS
+        # ============
+        member = self.env['slide.channel.partner'].sudo().search([
+            ('channel_id', '=', self.furniture_course.id),
+            ('partner_id', '=', user_portal.partner_id.id),
+        ])
+        self.assertTrue(member)
+        self.assertEqual(member.member_status, 'completed', "Member status should be 'completed'")
+        self.assertEqual(member.completion, 100, "Completion rate should be 100%")

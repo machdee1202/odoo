@@ -2,448 +2,564 @@
 <odoo>
 
 <!-- Snippets menu -->
-<template id="snippets" inherit_id="web_editor.snippets" primary="True">
-    <xpath expr="//div[@id='o_scroll']" position="replace">
-        <div id="o_scroll">
-            <div id="snippet_mega_menu" class="o_panel d-none">
-                <div class="o_panel_header">
-                    <i class="fa fa-puzzle-piece"/> Mega Menu
-                </div>
-                <div class="o_panel_body">
-                    <t t-snippet="website.s_mega_menu_multi_menus" t-thumbnail="/website/static/src/img/snippets_thumbs/s_mega_menu_multi_menus.png"/>
-                    <t t-snippet="website.s_mega_menu_menu_image_menu" t-thumbnail="/website/static/src/img/snippets_thumbs/s_mega_menu_menu_image_menu.png"/>
-                </div>
-            </div>
+<template id="snippets" groups="base.group_user">
+    <t id="default_snippets">
+        <t t-set="cta_btn_text" t-value="False"/>
+        <t t-set="cta_btn_href">/contactus</t>
+        <t t-set="shop_btn_href">#</t>
 
-            <div id="snippet_structure" class="o_panel">
-                <div class="o_panel_header">
-                    <i class="fa fa-th-large"/> Structure
-                </div>
-                <div class="o_panel_body">
-                    <t t-snippet="website.s_banner" t-thumbnail="/website/static/src/img/snippets_thumbs/s_banner.png"/>
-                    <t t-snippet="website.s_cover" t-thumbnail="/website/static/src/img/snippets_thumbs/s_cover.png"/>
-                    <t t-snippet="website.s_text_image" t-thumbnail="/website/static/src/img/snippets_thumbs/s_text_image.png"/>
-                    <t t-snippet="website.s_image_text" t-thumbnail="/website/static/src/img/snippets_thumbs/s_image_text.png"/>
-                    <t t-snippet="website.s_title" t-thumbnail="/website/static/src/img/snippets_thumbs/s_title.png"/>
-                    <t t-snippet="website.s_text_block" t-thumbnail="/website/static/src/img/snippets_thumbs/s_text_block.png"/>
-                    <t t-snippet="website.s_picture" t-thumbnail="/website/static/src/img/snippets_thumbs/s_picture.png"/>
-                    <t t-snippet="website.s_carousel" t-thumbnail="/website/static/src/img/snippets_thumbs/s_carousel.png"/>
-                    <t t-snippet="website.s_features" t-thumbnail="/website/static/src/img/snippets_thumbs/s_features.png"/>
-                    <t t-snippet="website.s_three_columns" t-thumbnail="/website/static/src/img/snippets_thumbs/s_three_columns.png"/>
-                </div>
-            </div>
+        <!-- Snippet groups -->
+        <snippets id="snippet_groups" string="Categories">
+            <t snippet-group="custom" t-snippet="website.s_snippet_group" string="Custom"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_media_list.svg"/>
+            <t snippet-group="intro" t-snippet="website.s_snippet_group" string="Intro"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_cover.svg"/>
+            <t snippet-group="columns" t-snippet="website.s_snippet_group" string="Columns"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_three_columns.svg"/>
+            <t snippet-group="content" t-snippet="website.s_snippet_group" string="Content"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_text_image.svg"/>
+            <t snippet-group="images" t-snippet="website.s_snippet_group" string="Images"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_picture.svg"/>
+            <t snippet-group="people" t-snippet="website.s_snippet_group" string="People"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_company_team.svg"/>
+            <t snippet-group="text" t-snippet="website.s_snippet_group" string="Text"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_text_block.svg"/>
+            <t snippet-group="contact_and_forms" t-snippet="website.s_snippet_group" string="Contact &amp; Forms"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_website_form.svg"/>
+            <t snippet-group="social" t-snippet="website.s_snippet_group" string="Social"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_instagram_page.svg"/>
+            <t t-if="debug" snippet-group="debug" t-snippet="website.s_snippet_group" string="Debug"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_debug_group.png"/>
+            <t snippet-group="catalog" t-snippet="website.s_snippet_group" string="Catalog"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_catalog.svg"/>
+            <t id="installed_snippets_hook"/>
+            <t snippet-group="blogs" string="Blogs" t-install="website_blog"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_blog_posts.svg"/>
+            <t snippet-group="events" string="Events" t-install="website_event"
+                t-thumbnail="/website/static/src/img/snippets_thumbs/s_event_upcoming_snippet.svg"/>
+        </snippets>
 
-            <div id="snippet_feature" class="o_panel">
-                <div class="o_panel_header">
-                    <i class="fa fa-diamond"/> Features
-                </div>
-                <div class="o_panel_body">
-                    <t t-snippet="website.s_image_gallery" t-thumbnail="/website/static/src/img/snippets_thumbs/s_image_gallery.png"/>
-                    <t t-snippet="website.s_comparisons" t-thumbnail="/website/static/src/img/snippets_thumbs/s_comparison.png"/>
-                    <t t-snippet="website.s_company_team" t-thumbnail="/website/static/src/img/snippets_thumbs/s_company_team.png"/>
-                    <t t-snippet="website.s_call_to_action" t-thumbnail="/website/static/src/img/snippets_thumbs/s_call_to_action.png"/>
-                    <t t-snippet="website.s_references" t-thumbnail="/website/static/src/img/snippets_thumbs/s_references.png"/>
-                    <t t-snippet="website.s_faq_collapse" t-thumbnail="/website/static/src/img/snippets_thumbs/s_faq.png"/>
-                    <t t-snippet="website.s_features_grid" t-thumbnail="/website/static/src/img/snippets_thumbs/s_features_grid.png"/>
-                    <t t-snippet="website.s_popup" t-thumbnail="/website/static/src/img/snippets_thumbs/s_popup.png"/>
-                    <t t-snippet="website.s_tabs" t-thumbnail="/website/static/src/img/snippets_thumbs/s_tabs.png"/>
-                    <t t-snippet="website.s_countdown" t-thumbnail="/website/static/src/img/snippets_thumbs/s_countdown.png"/>
-                    <t t-snippet="website.s_product_catalog" t-thumbnail="/website/static/src/img/snippets_thumbs/s_product_catalog.png"/>
-                </div>
-            </div>
+        <snippets id="snippet_structure" string="Structure">
 
-            <div id="snippet_effect" class="o_panel">
-                <div class="o_panel_header">
-                    <i class="fa fa-magic icon-fix"/> Effects
-                </div>
-                <div class="o_panel_body">
-                    <t t-snippet="website.s_parallax" t-thumbnail="/website/static/src/img/snippets_thumbs/s_parallax.png"/>
-                    <t t-snippet="website.s_quotes_carousel" t-thumbnail="/website/static/src/img/snippets_thumbs/s_quotes_carousel.png"/>
-                </div>
-            </div>
+            <!-- Intro group -->
+            <t t-snippet="website.s_banner" string="Banner" group="intro">
+                <keywords>hero, jumbotron, headline, header, branding, intro, home, showcase, spotlight, lead, welcome, announcement, splash, top, main</keywords>
+            </t>
+            <t t-snippet="website.s_splash_intro" string="Splash Intro" group="intro">
+                <keywords>hero, splash, fullscreen, image, background, headline, header, branding, intro, home, showcase, spotlight, main, landing, presentation, top, cover, immersive, visual, impactful</keywords>
+            </t>
+            <t t-snippet="website.s_cover" string="Cover" group="intro">
+                <keywords>hero, jumbotron, headline, header, branding, intro, home, showcase, spotlight, main, landing, presentation, top, splash, parallax</keywords>
+            </t>
+            <t t-snippet="website.s_text_cover" string="Text Cover" group="intro">
+                <keywords>hero, jumbotron, headline, header, intro, home, content, description, primary, highlight, lead</keywords>
+            </t>
+            <t t-snippet="website.s_carousel" string="Carousel" group="intro" label="Carousel">
+                <keywords>gallery, carousel, slider, slideshow, picture, photo, image-slider, rotating, swipe, transition, media-carousel, movement</keywords>
+            </t>
+            <t t-snippet="website.s_carousel_intro" string="Carousel Intro" group="intro" label="Carousel">
+                <keywords>gallery, carousel, slider, slideshow, picture, photo, image-slider, rotating, swipe, transition, media-carousel, movement</keywords>
+            </t>
+            <t t-snippet="website.s_adventure" string="Adventure" group="intro">
+                <keywords>journey, exploration, travel, outdoor, excitement, quest, start, onboarding, discovery, thrill</keywords>
+            </t>
+            <t t-snippet="website.s_striped_center_top" string="Striped Center Top" group="intro">
+                <keywords>hero, jumbotron, headline, header, introduction, home, content, picture, photo, illustration, media, visual, article, combination, trendy, pattern, design, centered</keywords>
+            </t>
+            <t t-snippet="website.s_motto" string="Motto" group="intro">
+                <keywords>cite, slogan, tagline, mantra, catchphrase, statements, sayings, comments, mission, citations, maxim, quotes, principle, ethos, values</keywords>
+            </t>
+            <t t-snippet="website.s_banner_connected" string="Banner connected" group="intro">
+                <keywords>content, picture, photo, connection, cover, shape, background, image, headings, hero, light, experience, parallax</keywords>
+            </t>
+            <t t-snippet="website.s_kickoff" string="Kickoff" group="intro">
+                <keywords>picture, photo, illustration, media, visual, start, launch, commencement, initiation, opening, kick-off, kickoff, beginning, events, parallax</keywords>
+            </t>
+            <t t-snippet="website.s_closer_look" string="Closer Look" group="intro">
+                <keywords>content, picture, photo, illustration, media, visual, focus, in-depth, analysis, more, contact, detailed, mockup, explore, insight</keywords>
+            </t>
+            <t t-snippet="website.s_striped_top" string="Striped Top" group="intro">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, trendy, pattern, design</keywords>
+            </t>
+            <t t-snippet="website.s_sidegrid" string="Side grid" group="intro">
+                <keywords>grid, gallery, pictures, photos, media, text, content, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid, split, alignment</keywords>
+            </t>
+            <t t-snippet="website.s_discovery" string="Discovery" group="intro">
+                <keywords>hero, jumbotron, headline, header, introduction, home, content, introduction, overview, spotlight, presentation, welcome, context, description, primary, highlight, lead, discover, exploration, reveal</keywords>
+            </t>
+            <t t-snippet="website.s_intro_pill" string="Intro Pill" group="intro">
+                <keywords>hero, jumbotron, headline, header, introduction, home, content, introduction, overview, spotlight, presentation, welcome, context, description, primary, highlight, lead, journey, skills, expertises, experts, accomplishments, knowledge</keywords>
+            </t>
+            <t t-snippet="website.s_framed_intro" string="Framed Intro" group="intro">
+                <keywords>hero, jumbotron, headline, header, introduction, home, content, introduction, overview, spotlight, presentation, welcome, context, description, primary, highlight, lead</keywords>
+            </t>
+            <t t-snippet="website.s_empowerment" string="Empowerment" group="intro">
+                <keywords>hero, jumbotron, headline, header, introduction, home, content, introduction, overview, spotlight, presentation, welcome, context, description, primary, highlight, lead, CTA, promote, promotion</keywords>
+            </t>
+            <t t-snippet="website.s_split_intro" string="Split Intro" group="intro">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, network, relationships, interactions, connectivity, collaborations</keywords>
+            </t>
 
-            <div id="snippet_content" class="o_panel">
-                <div class="o_panel_header">
-                    <i class="fa fa-indent"/> Inner content
-                </div>
-                <div class="o_panel_body">
-                    <t t-snippet="website.s_btn" t-thumbnail="/website/static/src/img/snippets_thumbs/s_button.png"/>
-                    <t t-snippet="website.s_hr" t-thumbnail="/website/static/src/img/snippets_thumbs/s_separator.png"/>
-                    <t t-snippet="website.s_alert" t-thumbnail="/website/static/src/img/snippets_thumbs/s_alert.png"/>
-                    <t t-snippet="website.s_card" t-thumbnail="/website/static/src/img/snippets_thumbs/s_card.png"/>
-                    <t t-snippet="website.s_share" t-thumbnail="/website/static/src/img/snippets_thumbs/s_share.png"/>
-                    <t t-snippet="website.s_facebook_page" t-thumbnail="/website/static/src/img/snippets_thumbs/s_facebook_page.png"/>
-                    <t t-snippet="website.s_rating" t-thumbnail="/website/static/src/img/snippets_thumbs/s_rating.png"/>
-                    <t t-snippet="website.s_chart" t-thumbnail="/website/static/src/img/snippets_thumbs/s_chart.png"/>
-                </div>
-            </div>
-        </div>
-    </xpath>
+            <!-- Columns group -->
+            <t t-snippet="website.s_three_columns" string="Columns" group="columns">
+                <keywords>description, containers, layouts, structures, multi-columns, modules, boxes</keywords>
+            </t>
+            <t t-snippet="website.s_features_wall" string="Features Wall" group="columns">
+                <keywords>reveal, showcase, launch, presentation, announcement, content, picture, photo, illustration, media, visual, combination</keywords>
+            </t>
+            <t t-snippet="website.s_key_benefits" string="Key benefits" group="columns">
+                <keywords>promotion, characteristic, quality, highlights, specs, advantages, functionalities, features, exhibit, details, capabilities, attributes, promotion, headline, content, overview, spotlight</keywords>
+            </t>
+            <t t-snippet="website.s_product_list" string="Items" group="columns">
+                <keywords>shop, group, list, card, cart, products, inventory, catalog, merchandise, goods</keywords>
+            </t>
+            <t t-snippet="website.s_freegrid" string="Free grid" group="columns">
+                <keywords>description, containers, layouts, structures, multi-columns, modules, boxes, content, picture, photo, illustration, media, visual, article, story, combination, showcase, announcement, reveal, trendy, design, shape, geometric, engage, call to action, cta, button</keywords>
+            </t>
+            <t t-snippet="website.s_cards_grid" string="Cards Grid" group="columns">
+                <keywords>description, containers, layouts, structures, multi-columns, modules, boxes, content, picture, photo, illustration, media, visual, article, story, combination, showcase, announcement, reveal</keywords>
+            </t>
+            <t t-snippet="website.s_key_images" string="Key Images" group="columns">
+                <keywords>columns, gallery, pictures, photos, media, text, content, album, showcase, visuals, portfolio, arrangement, collection, visual-grid, split, alignment, added value</keywords>
+            </t>
+            <t t-snippet="website.s_wavy_grid" string="Wavy Grid" group="columns">
+                <keywords>reveal, showcase, launch, presentation, announcement, content, picture, photo, illustration, media, visual, combination</keywords>
+            </t>
+            <t t-snippet="website.s_card_offset" string="Card Offset" group="columns">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, trendy, pattern, design</keywords>
+            </t>
+            <t t-snippet="website.s_cards_soft" string="Cards Soft" group="columns">
+                <keywords>description, containers, layouts, structures, multi-columns, modules, boxes, content, picture, photo, illustration, media, visual, article, story, combination, showcase, announcement, reveal</keywords>
+            </t>
 
-    <xpath expr="//div[@id='snippet_options']/t" position="attributes">
-        <attribute name="t-call">website.snippet_options</attribute>
-    </xpath>
+            <!-- Content group -->
+            <t t-snippet="website.s_text_image" string="Text - Image" group="content">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination</keywords>
+            </t>
+            <t t-snippet="website.s_image_text" string="Image - Text" group="content">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination</keywords>
+            </t>
+            <t t-snippet="website.s_shape_image" string="Shape image" group="content">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, trendy, pattern, design, shape, geometric, patterned</keywords>
+            </t>
+            <t t-snippet="website.s_mockup_image" string="Mockup Image" group="content">
+                <keywords>CTA, button, btn, action, engagement, link, offer, appeal, call to action, prompt, interact, trigger, mockup</keywords>
+            </t>
+            <t t-snippet="website.s_cta_mockups" string="Call to Action Mockups" group="content">
+                <keywords>CTA, button, btn, action, engagement, link, offer, appeal, call to action, prompt, interact, trigger, mockups</keywords>
+            </t>
+            <t t-snippet="website.s_image_hexagonal" string="Image Hexagonal" group="content">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, more, hexagon, geometric</keywords>
+            </t>
+            <t t-snippet="website.s_image_text_box" string="Image Text Box" group="content">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, engage, call to action, cta, box, showcase</keywords>
+            </t>
+            <t t-snippet="website.s_image_text_overlap" string="Image - Text Overlap" group="content">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, trendy, pattern, design</keywords>
+            </t>
+            <t t-snippet="website.s_call_to_action" string="Call to Action" group="content">
+                <keywords>CTA, button, btn, action, engagement, link, offer, appeal</keywords>
+            </t>
+            <t t-snippet="website.s_cta_box" string="Box Call to Action" group="content">
+                <keywords>CTA, button, btn, action, engagement, link, offer, appeal, call to action, prompt, interact, trigger</keywords>
+            </t>
+            <t t-snippet="website.s_striped" string="Striped section" group="content">
+                <keywords>hero, jumbotron, headline, header, introduction, home, content, picture, photo, illustration, media, visual, article, combination, trendy, pattern, design</keywords>
+            </t>
+            <t t-snippet="website.s_cta_card" string="Card Call to Action" group="content">
+                <keywords>CTA, button, btn, action, engagement, link, offer, appeal, call to action, prompt, interact, trigger, items, checklists, entries, sequences, bullets, points, list, group, benefits, features, advantages</keywords>
+            </t>
+            <t t-snippet="website.s_cta_mobile" string="CTA Mobile" group="content">
+                <keywords>stores, button, engagement, appeal, mockup, text, content, picture, photo, illustration, media, visual, article, story</keywords>
+            </t>
+            <t t-snippet="website.s_searchbar" string="Search" t-forbid-sanitize="form" group="content"/>
+            <t t-snippet="website.s_color_blocks_2" string="Big Boxes" group="content">
+                <keywords>columns, containers, layouts, large, panels, modules</keywords>
+            </t>
+            <t t-snippet="website.s_popup" string="Popup" group="content" label="Popup"/>
+            <t t-snippet="website.s_countdown" string="Countdown" group="content">
+                <keywords>celebration, launch</keywords>
+            </t>
+            <t t-snippet="website.s_numbers_charts" string="Numbers Charts" group="content">
+                <keywords>graph, table, diagram, pie, plot, bar, metrics, figures, data-visualization, statistics, stats, analytics, infographic, skills, report</keywords>
+            </t>
+            <t t-snippet="website.s_numbers" string="Numbers" group="content">
+                <keywords>statistics, stats, KPI, metrics, dashboard, analytics, highlights, figures, skills, achievements, benchmarks, milestones, indicators, data, measurements, reports, trends, results, analytics, summaries, summary</keywords>
+            </t>
+            <t t-snippet="website.s_numbers_boxed" string="Numbers boxed" group="content">
+                <keywords>statistics, stats, KPI, metrics, dashboard, analytics, highlights, figures, performance, achievements, benchmarks, milestones, indicators, data, measurements, reports, trends, results, analytics, summaries, summary</keywords>
+            </t>
+            <t t-snippet="website.s_numbers_framed" string="Numbers framed" group="content">
+                <keywords>statistics, stats, KPI, metrics, dashboard, analytics, highlights, figures, performance, achievements, benchmarks, milestones, indicators, data, measurements, reports, trends, results</keywords>
+            </t>
+            <t t-snippet="website.s_numbers_list" string="Numbers list" group="content">
+                <keywords>statistics, stats, KPI, metrics, dashboard, analytics, highlights, figures, skills, achievements, benchmarks, milestones, indicators, data, measurements, reports, trends, results, analytics, cta, call to action, button</keywords>
+            </t>
+            <t t-snippet="website.s_numbers_grid" string="Numbers Grid" group="content">
+                <keywords>statistics, stats, KPI, metrics, dashboard, analytics, highlights, figures, skills, achievements, benchmarks, milestones, indicators, data, measurements, reports, trends, results</keywords>
+            </t>
+            <t t-snippet="website.s_big_number" string="Big number" group="content">
+                <keywords>statistics, stats, KPI, metrics, dashboard, analytics, highlights, figures, skills, achievements, benchmarks, milestones, indicators, data, measurements, reports, trends, results, analytics, summaries, summary, large-figures, prominent, standout</keywords>
+            </t>
+            <t t-snippet="website.s_features" string="Features" group="content">
+                <keywords>promotion, characteristic, quality, highlights, specs, advantages, functionalities, exhibit, details, capabilities, attributes, promotion</keywords>
+            </t>
+            <t t-snippet="website.s_features_wave" string="Features Wave" group="content">
+                <keywords>promotion, characteristic, quality, highlights, specs, advantages, functionalities, exhibit, details, capabilities, attributes, promotion, headline, content, overview, spotlight</keywords>
+            </t>
+            <t t-snippet="website.s_media_list" string="Media List" group="content">
+                <keywords>block, blog, post, catalog, feed, items, entries, entry, collection</keywords>
+            </t>
+            <t t-snippet="website.s_showcase" string="Showcase" group="content">
+                <keywords>promotion, characteristic, quality, highlights, specs, advantages, functionalities, exhibit, details, capabilities, attributes, promotion, presentation, demo, feature</keywords>
+            </t>
+            <t t-snippet="website.s_comparisons" string="Comparisons" group="content">
+                <keywords>pricing, promotion, price, feature-comparison, side-by-side, evaluation, competitive, overview</keywords>
+            </t>
+            <t t-snippet="website.s_comparisons_horizontal" string="Comparisons Horizontal" group="content">
+                <keywords>comparison, price, pricing, engage, call to action, cta, box, shop, table, cart, product, cost, charges, fees, tariffs, prices, expenses</keywords>
+            </t>
+            <t t-snippet="website.s_features_grid" string="Features Grid" group="content">
+                <keywords>promotion, characteristic, quality, highlights, specs, advantages, functionalities, exhibit, details, capabilities, attributes, promotion</keywords>
+            </t>
+            <t t-snippet="website.s_tabs" string="Tabs" group="content" label="Tab">
+                <keywords>navigation, sections, multi-tab, panel, toggle</keywords>
+            </t>
+            <t t-snippet="website.s_tabs_images" string="Tabs Images" group="content" label="Tab">
+                <keywords>images, pictures, photos, illustrations, media, visual, slider, tabs, switch, tabbed, sections, navigation</keywords>
+            </t>
+            <t t-snippet="website.s_timeline" string="Timeline" group="content">
+                <keywords>history, story, events, milestones, chronology, sequence, progression, achievements</keywords>
+            </t>
+            <t t-snippet="website.s_timeline_list" string="Timeline List" group="content">
+                <keywords>history, story, events, milestones, chronology, sequence, progression, achievements, changelog, updates, announcements, recent, latest</keywords>
+            </t>
+            <t t-snippet="website.s_timeline_images" string="Timeline Images" group="content">
+                <keywords>history, story, events, milestones, chronology, sequence, progression, achievements, changelog, updates, announcements, recent, latest, picture, photo, illustration, media, visual</keywords>
+            </t>
+            <t t-snippet="website.s_process_steps" string="Steps" t-forbid-sanitize="true" group="content">
+                <keywords>process, progression, guide, workflow, sequence, instructions, stages, procedure, roadmap</keywords>
+            </t>
+            <t t-snippet="website.s_numbers_showcase" string="Numbers Showcase" group="content">
+                <keywords>statistics, stats, KPI, metrics, dashboard, analytics, highlights, figures, skills, achievements, benchmarks, milestones, indicators, data, measurements, reports, trends, results, analytics, cta, call to action, button</keywords>
+            </t>
+            <t t-snippet="website.s_accordion_image" string="Accordion Image" group="content">
+                <keywords>common answers, common questions, faq, QA, collapse, expandable, toggle, collapsible, hide-show, movement, information, image, picture, photo, illustration, media, visual</keywords>
+            </t>
+            <t t-snippet="website.s_carousel_cards" string="Carousel Cards" group="content" label="Carousel">
+                <keywords>gallery, carousel, slider, slideshow, picture, photo, image-slider, rotating, swipe, transition, media-carousel, movement, cta, engagement, call to action</keywords>
+            </t>
+
+            <!-- Keep `s_embed_code` snippet at the very end of the "Content" group -->
+            <t t-snippet="website.s_embed_code" string="Embed Code" t-forbid-sanitize="true"
+                t-image-preview="/website/static/src/img/snippets_previews/s_embed_code_preview.png" group="content"/>
+
+
+            <!-- Images group -->
+            <t t-snippet="website.s_picture" string="Title - Image" group="images">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, heading, headline</keywords>
+            </t>
+            <!-- TODO share the keywords somehow (t-out does not work) -->
+            <t t-snippet="website.s_masonry_block_default_template" string="Masonry" group="images">
+                <keywords>masonry, grid, column, pictures, photos, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_masonry_block_reversed_template" string="Masonry" group="images">
+                <keywords>masonry, grid, column, pictures, photos, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_masonry_block_images_template" string="Masonry" group="images">
+                <keywords>masonry, grid, column, pictures, photos, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_masonry_block_mosaic_template" string="Masonry" group="images">
+                <keywords>masonry, grid, column, pictures, photos, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_masonry_block_alternation_text_image_template" string="Masonry" group="images">
+                <keywords>masonry, grid, column, pictures, photos, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_masonry_block_alternation_image_text_template" string="Masonry" group="images">
+                <keywords>masonry, grid, column, pictures, photos, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_quadrant" string="Quadrant" group="images">
+                <keywords>four sections, column, grid, division, split, segments, pictures, illustration, media, photos, tiles, arrangement, gallery, images-grid, mixed, collection, stacking, visual-grid, showcase, visuals, portfolio, thumbnails, engage, call to action, cta, showcase</keywords>
+            </t>
+            <t t-snippet="website.s_image_gallery" string="Image Gallery" group="images" label="Carousel">
+                <keywords>gallery, carousel, pictures, photos, album, showcase, visuals, portfolio, thumbnails, slideshow</keywords>
+            </t>
+            <t t-snippet="website.s_images_wall" string="Images Wall" group="images" label="Gallery">
+                <keywords>grid, gallery, pictures, photos, album, showcase, visuals, portfolio, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_image_punchy" string="Punchy Image" group="images">
+                <keywords>headline, header, content, picture, photo, illustration, media, visual, article, combination, trendy, pattern, design, bold, impactful, vibrant, standout</keywords>
+            </t>
+            <t t-snippet="website.s_parallax" string="Parallax" group="images">
+                <keywords>scrolling, depth, effect, background, layer, visual, movement, parallax</keywords>
+            </t>
+            <t t-snippet="website.s_unveil" string="Unveil" group="images">
+                <keywords>reveal, showcase, launch, presentation, announcement, content, picture, photo, illustration, media, visual, article, combination</keywords>
+            </t>
+            <t t-snippet="website.s_image_title" string="Image Title" group="images">
+                <keywords>headline, header, content, picture, photo, illustration, media, visual, combination</keywords>
+            </t>
+            <t t-snippet="website.s_image_frame" string="Image Frame" group="images">
+                <keywords>header, introduction, home, content, introduction, overview, spotlight, presentation, welcome, context, description, primary, highlight, lead</keywords>
+            </t>
+            <t t-snippet="website.s_images_mosaic" string="Images Mosaic" group="images">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, trendy, pattern, design, shape, geometric, patterned, contrast</keywords>
+            </t>
+            <t t-snippet="website.s_images_constellation" string="Images Constellation" group="images">
+                <keywords>content, picture, photo, illustration, media, visual, article, story, combination, trendy, pattern, design, shape, geometric, patterned, contrast, collage, arrangement, gallery, creative, mosaic</keywords>
+            </t>
+
+            <!-- People group -->
+            <t t-snippet="website.s_company_team" string="Team" group="people">
+                <keywords>organization, company, people, column, members, staffs, profiles, bios, roles, personnel, crew</keywords>
+            </t>
+            <t t-snippet="website.s_company_team_basic" string="Team Basic" group="people">
+                <keywords>organization, company, people, members, staffs, profiles, bios, roles, personnel, crew, patterned, trendy</keywords>
+            </t>
+            <t t-snippet="website.s_company_team_shapes" string="Team Shapes" group="people">
+                <keywords>organization, structure, people, team, name, role, position, image, portrait, photo, employees, shapes</keywords>
+            </t>
+            <t t-snippet="website.s_company_team_detail" string="Team Detail" group="people">
+                <keywords>organization, company, people, members, staffs, profiles, bios, roles, personnel, crew, patterned, trendy, social</keywords>
+            </t>
+            <t t-snippet="website.s_company_team_spotlight" string="Team Spotlight" group="people">
+                <keywords>organization, company, people, members, staffs, profiles, bios, roles, personnel, crew, patterned</keywords>
+            </t>
+            <t t-snippet="website.s_company_team_grid" string="Company Team Grid" group="people">
+                <keywords>organization, structure, people, team, name, role, position, image, portrait, photo, employees, shapes</keywords>
+            </t>
+            <t t-snippet="website.s_company_team_card" string="Card Team" group="people">
+                <keywords>organization, structure, people, team, name, role, position, image, portrait, photo, employees, shapes</keywords>
+            </t>
+            <t t-snippet="website.s_references" string="References" group="people">
+                <keywords>customers, clients, sponsors, partners, supporters, case-studies, collaborators, associations, associates, testimonials, endorsements</keywords>
+            </t>
+            <t t-snippet="website.s_references_social" string="References Social" group="people">
+                <keywords>customers, clients, sponsors, partners, supporters, case-studies, collaborators, associations, associates, testimonials, endorsements, social</keywords>
+            </t>
+            <t t-snippet="website.s_references_grid" string="References Grid" group="people">
+                <keywords>customers, clients, sponsors, partners, supporters, case-studies, collaborators, associations, associates, testimonials, endorsements</keywords>
+            </t>
+            <t t-snippet="website.s_quotes_carousel" string="Quotes" group="people" label="Carousel">
+                <keywords>cite, testimonials, endorsements, reviews, feedback, statements, references, sayings, comments, appreciations, citations, carousel</keywords>
+            </t>
+            <t t-snippet="website.s_quotes_carousel_minimal" string="Quotes Minimal" group="people" label="Carousel">
+                <keywords>cite, testimonials, endorsements, reviews, feedback, statements, references, sayings, comments, appreciations, citations, carousel</keywords>
+            </t>
+            <t t-snippet="website.s_reviews_wall" string="Reviews Wall" group="people">
+                <keywords>cite, testimonials, endorsements, reviews, feedback, statements, references, sayings, comments, appreciations, citations</keywords>
+            </t>
+            <t t-snippet="website.s_quotes_carousel_compact" string="Quotes Compact" group="people" label="Carousel">
+                <keywords>cite, testimonials, endorsements, reviews, feedback, statements, references, sayings, comments, appreciations, citations, carousel</keywords>
+            </t>
+
+            <!-- Text group -->
+            <t t-snippet="website.s_title" string="Title" group="text">
+                <keywords>heading, h1, headline, header, main, top, caption, introductory, principal, key</keywords>
+            </t>
+            <t t-snippet="website.s_text_block" string="Text" group="text">
+                <keywords>content, paragraph, article, body, description, information</keywords>
+            </t>
+            <t t-snippet="website.s_faq_collapse" string="FAQ Block" group="text">
+                <keywords>common answers, common questions</keywords>
+            </t>
+            <t t-snippet="website.s_faq_list" string="FAQ List" group="text">
+                <keywords>questions, answers, common answers, common questions, faq, help, support, information, knowledge, guide, troubleshooting, assistance, columns, QA</keywords>
+            </t>
+            <t t-snippet="website.s_table_of_content" string="Table of Content" group="text" label="Table of Contents">
+                <keywords>navigation, index, outline, chapters, sections, overview, menu, tab</keywords>
+            </t>
+            <t t-snippet="website.s_faq_horizontal" string="Topics List" group="text">
+                <keywords>questions, answers, common answers, common questions, faq, help, support, information, knowledge, guide, troubleshooting, assistance, QA, terms of services</keywords>
+            </t>
+            <t t-snippet="website.s_product_catalog" string="Pricelist" group="text">
+                <keywords>menu, pricing, shop, table, cart, product, cost, charges, fees, rates, prices, expenses</keywords>
+            </t>
+            <t t-snippet="website.s_pricelist_cafe" string="Pricelist Cafe" group="text">
+                <keywords>menu, pricing, shop, table, cart, product, cost, charges, fees, rates, prices, expenses, columns</keywords>
+            </t>
+            <t t-snippet="website.s_pricelist_boxed" string="Pricelist Boxed" group="text">
+                <keywords>menu, pricing, shop, table, cart, product, cost, charges, fees, rates, prices, expenses</keywords>
+            </t>
+
+            <!-- Contact & Forms group -->
+            <t t-snippet="website.s_title_form" string="Title - Form" t-forbid-sanitize="form" group="contact_and_forms" label="Form">
+                <keywords>contact, collect, submission, input, fields, questionnaire, survey, registration, request</keywords>
+            </t>
+            <t t-snippet="website.s_opening_hours" string="Opening Hours" group="contact_and_forms"/>
+            <t t-snippet="website.s_contact_info" string="Contact Info" group="contact_and_forms"/>
+            <t t-snippet="website.s_website_form_overlay" string="Form Overlay" t-forbid-sanitize="form" group="contact_and_forms" label="Form">
+                <keywords>contact, collect, submission, input, fields, questionnaire, survey, registration, request</keywords>
+            </t>
+            <t t-snippet="website.s_website_form_info" string="Form Info" t-forbid-sanitize="form" group="contact_and_forms" label="Form">
+                <keywords>contact, collect, submission, input, fields, questionnaire, survey, registration, request, image, picture, photo, illustration, media, visual, company, organization, address, phone, email, location, get-in-touch</keywords>
+            </t>
+            <t t-snippet="website.s_website_form_cover" string="Form Cover" t-forbid-sanitize="form" group="contact_and_forms" label="Form">
+                <keywords>contact, collect, submission, input, fields, questionnaire, survey, registration, request, image, picture, photo, illustration, media, visual</keywords>
+            </t>
+            <t t-snippet="website.s_form_aside" string="Form Aside" t-forbid-sanitize="form" group="contact_and_forms" label="Form">
+                <keywords>contact, collect, submission, input, fields, questionnaire, survey, registration, request, image, picture, photo, illustration, media, visual, get-in-touch</keywords>
+            </t>
+
+            <!-- Catalog group -->
+            <t t-snippet="website.s_floating_blocks" string="Floating Cards" group="catalog">
+                <keywords>hero, animation, animated, cards, float, stacked, promo, categories, ecommerce, shop</keywords>
+            </t>
+            <t t-snippet="website.s_attributes_horizontal" string="Horizontal Attributes" group="catalog">
+                <keywords>services, icons, features, characteristic, specs, advantages, functionalities, exhibit, details, capabilities, attributes, promotion, overview, specifications</keywords>
+            </t>
+            <t t-snippet="website.s_bento_grid" string="Bento Grid" group="catalog">
+                <keywords>cards, shop, grid, column, cart, product, ecommerce, categories, highlights, pictures, photos, illustration, media, visuals, intro, home, coupon, code, description, rounded, card, call to action, cta, marketing, showcase, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t t-snippet="website.s_bento_banner" string="Bento Banner" group="catalog">
+                <keywords>hero, jumbotron, headline, header, introduction, banner, call to action, cta, button, highlight, showcase, spotlight, sober, trendy, design, picture, photo, illustration, visual, description, containers, layouts, product, buy</keywords>
+            </t>
+            <t t-snippet="website.s_banner_product" string="Collection Banner" group="catalog">
+                <keywords>hero, jumbotron, headline, header, shop, cart, product, ecommerce, picture, photo, illustration, media, visual, intro, home, content, description, call to action, cta, minimalist, marketing</keywords>
+            </t>
+            <t t-snippet="website.s_bento_block" string="Bento Block" group="catalog">
+                <keywords>hero, jumbotron, headline, header, shop, cart, product, ecommerce, picture, photo, illustration, media, visual, intro, home, content, description, rounded, card, call to action, cta, minimalist, marketing</keywords>
+            </t>
+            <t t-snippet="website.s_ecomm_categories_showcase" string="Categories Showcase" group="catalog">
+                <keywords>shop, cart, product, categories, ecommerce, e-commerce, cards, trendy, column, layouts, picture, photo, illustration, media, visual</keywords>
+            </t>
+            <t t-snippet="website.s_banner_categories" string="Banner Categories" group="catalog">
+                <keywords>hero, categories, ecommerce, shop, illustration, buy, photos, shop, product, grid, pictures</keywords>
+            </t>
+            <t t-snippet="website.s_attributes_vertical" string="Vertical Attributes" group="catalog">
+                <keywords>services, icons, features, characteristic, specs, advantages, functionalities, exhibit, details, capabilities, attributes, promotion, overview, specifications</keywords>
+            </t>
+            <t t-snippet="website.s_announcement_scroll" string="Announcement Scroll" group="catalog" label="Scroll">
+                <keywords>banner, announcement, scrolling text, trust indicators, info bar, site-wide banner, minimal design, trendy, bold, presentation</keywords>
+            </t>
+            <t t-snippet="website.s_bento_grid_avatars" string="Bento Avatars" group="catalog">
+                <keywords>cards, shop, grid, avatars, column, cart, product, ecommerce, categories, highlights, pictures, photos, illustration, media, visuals, intro, home, coupon, code, description, rounded, card, call to action, cta, marketing, showcase, mosaic, collage, arrangement, collection, visual-grid</keywords>
+            </t>
+            <t id="sale_products_hook"/>
+
+            <!-- Blogs group -->
+            <t id="blog_posts_hook"/>
+
+            <!-- Events group -->
+            <t id="event_upcoming_snippet_hook"/>
+
+            <!-- Donation group -->
+            <t id="snippet_donation_hook"/>
+
+            <!-- Newsletter group -->
+            <t id="mass_mailing_newsletter_block_hook"/>
+            <t id="mass_mailing_newsletter_grid_hook"/>
+            <t id="mass_mailing_newsletter_popup_hook"/>
+            <t id="mass_mailing_newsletter_box_hook"/>
+            <t id="mass_mailing_newsletter_centered_hook"/>
+            <t id="mass_mailing_newsletter_sms_notifications_hook"/>
+            <t id="mass_mailing_newsletter_benefits_popup_hook"/>
+            <t id="mass_mailing_newsletter_aside_hook"/>
+
+            <!-- Social group -->
+            <t t-snippet="website.s_instagram_page" string="Instagram Page" group="social" label="Instagram"
+                t-image-preview="/website/static/src/img/snippets_previews/s_instagram_preview.webp">
+                <keywords>social media, ig, feed</keywords>
+            </t>
+            <t t-snippet="website.s_facebook_page" string="Facebook Page" group="social" label="Facebook"
+                t-image-preview="/website/static/src/img/snippets_previews/s_facebook_preview.webp">
+                <keywords>social media, fb, feed</keywords>
+            </t>
+            <t t-set="google_maps_api_key" t-value="request.env['website'].get_current_website().google_maps_api_key"/>
+            <t t-if="debug or not google_maps_api_key" t-snippet="website.s_map" string="Map" group="social" label="Map"
+                t-image-preview="/website/static/src/img/snippets_previews/s_map_preview.png"/>
+            <t t-if="debug or google_maps_api_key" t-snippet="website.s_google_map" string="Map" group="social" label="Map"
+                t-image-preview="/website/static/src/img/snippets_previews/s_map_preview.png"/>
+
+            <!-- Debug group -->
+            <t t-if="debug" t-snippet="website.s_dynamic_snippet" string="Dynamic Snippet" group="debug"
+                t-image-preview="/website/static/src/img/snippets_previews/s_dynamic_snippet_preview.png"/>
+            <t t-if="debug" t-snippet="website.s_dynamic_snippet_carousel" string="Dynamic Carousel" group="debug"
+                t-image-preview="/website/static/src/img/snippets_previews/s_dynamic_snippet_carousel_preview.png"/>
+        </snippets>
+
+        <snippets id="snippet_custom" string="Custom Inner Content"/>
+
+        <!-- Inner snippets -->
+        <snippets id="snippet_content" string="Inner content">
+            <t t-snippet="website.s_inline_text" string="Text" t-thumbnail="/website/static/src/img/snippets_thumbs/s_inline_text.svg" t-grid-column-span="4"/>
+            <t t-snippet="website.s_button" string="Button" t-thumbnail="/website/static/src/img/snippets_thumbs/s_button.svg" t-grid-column-span="3"/>
+            <t t-snippet="website.s_hr" string="Separator" t-thumbnail="/website/static/src/img/snippets_thumbs/s_hr.svg"/>
+            <t t-snippet="website.s_image" string="Image" t-thumbnail="/website/static/src/img/snippets_thumbs/s_image.svg"/>
+            <t t-snippet="website.s_video" string="Video" t-thumbnail="/website/static/src/img/snippets_thumbs/s_video.svg"/>
+            <t t-snippet="website.s_icon" string="Icon" t-thumbnail="/website/static/src/img/snippets_thumbs/s_icon.svg"/>
+            <t t-snippet="website.s_accordion" string="Accordion" t-thumbnail="/website/static/src/img/snippets_thumbs/s_accordion.svg"/>
+            <t t-snippet="website.s_alert" string="Alert" t-thumbnail="/website/static/src/img/snippets_thumbs/s_alert.svg"/>
+            <t t-snippet="website.s_rating" string="Rating" t-thumbnail="/website/static/src/img/snippets_thumbs/s_rating.svg" t-grid-column-span="3"/>
+            <t t-snippet="website.s_card" string="Card" t-thumbnail="/website/static/src/img/snippets_thumbs/s_card.svg"/>
+            <t t-snippet="website.s_share" string="Share" t-thumbnail="/website/static/src/img/snippets_thumbs/s_share.svg"/>
+            <t t-snippet="website.s_social_media" string="Social Media" t-thumbnail="/website/static/src/img/snippets_thumbs/s_social_media.svg"/>
+            <t t-snippet="website.s_facebook_page" string="Facebook" t-thumbnail="/website/static/src/img/snippets_thumbs/s_facebook_page.svg"
+                t-drag-image-preview="/website/static/src/img/snippets_previews/s_facebook_preview.webp"/>
+            <t t-snippet="website.s_instagram_page" string="Instagram" t-thumbnail="/website/static/src/img/snippets_thumbs/s_instagram_page.svg"
+                t-drag-image-preview="/website/static/src/img/snippets_previews/s_instagram_preview.webp"/>
+            <t t-snippet="website.s_searchbar_input" string="Search" t-thumbnail="/website/static/src/img/snippets_thumbs/s_searchbar_inline.svg" t-forbid-sanitize="form" t-grid-column-span="5"/>
+            <t id="mass_mailing_newsletter_hook"/>
+            <t id="mail_group_hook"/>
+            <t t-snippet="website.s_text_highlight" string="Text Highlight" t-thumbnail="/website/static/src/img/snippets_thumbs/s_text_highlight.svg"/>
+            <t t-snippet="website.s_chart" string="Chart" t-thumbnail="/website/static/src/img/snippets_thumbs/s_chart.svg"/>
+            <t t-snippet="website.s_progress_bar" string="Progress Bar" t-thumbnail="/website/static/src/img/snippets_thumbs/s_progress_bar.svg" t-grid-column-span="4"/>
+            <t t-snippet="website.s_badge" string="Badge" t-thumbnail="/website/static/src/img/snippets_thumbs/s_badge.svg" t-grid-column-span="2"/>
+            <t t-snippet="website.s_cta_badge" string="CTA Badge" t-thumbnail="/website/static/src/img/snippets_thumbs/s_cta_badge.svg" t-grid-column-span="5"/>
+            <t t-snippet="website.s_avatars" string="Avatars" t-thumbnail="/website/static/src/img/snippets_thumbs/s_avatars.svg" t-grid-column-span="4"/>
+            <t t-snippet="website.s_blockquote" string="Blockquote" t-thumbnail="/website/static/src/img/snippets_thumbs/s_blockquote.svg" t-grid-column-span="5"/>
+            <!--
+            Note: this inner snippet is still allowed to be dropped as a
+            main snippet. Indeed, this handles the fact that the snippet
+            was previously a main one and can still be in old databases, but
+            also in some apps templates. It was just chosen to not suggest
+            it in the snippets modal anymore, and just *used* as an inner
+            snippet by other snippets in there.
+            -->
+            <t t-snippet="website.s_website_form" string="Form" t-thumbnail="/website/static/src/img/snippets_thumbs/s_website_form.svg" t-forbid-sanitize="form"/>
+            <t t-snippet="website.s_countdown" string="Countdown" t-thumbnail="/website/static/src/img/snippets_thumbs/s_countdown.svg"/>
+            <t t-snippet="website.s_embed_code" string="Embed Code" t-thumbnail="/website/static/src/img/snippets_thumbs/s_embed_code.svg" t-forbid-sanitize="true"/>
+            <t t-if="debug or not google_maps_api_key" t-snippet="website.s_map" string="Map" t-thumbnail="/website/static/src/img/snippets_thumbs/s_map.svg"/>
+            <t t-if="debug or google_maps_api_key" t-snippet="website.s_google_map" string="Map" t-thumbnail="/website/static/src/img/snippets_thumbs/s_google_map.svg"/>
+            <t id="event_speaker_bio_hook"/>
+            <t id="snippet_donation_button_hook"/>
+            <t id="snippet_add_to_cart_hook"/>
+            <t id="snippet_rental_search_hook"/>
+            <t id="snippet_supported_payment_methods_hook"/>
+        </snippets>
+    </t>
+
 </template>
 
 <template id="external_snippets" inherit_id="website.snippets" priority="8">
-    <xpath expr="//div[@id='snippet_feature']//t[@t-snippet][last()]" position="after">
-        <t id="newsletter_popup_snippet" t-install="mass_mailing" string="Newsletter Popup" t-thumbnail="/website/static/src/img/snippets_thumbs/newsletter_subscribe_popup.png"/>
-        <t id="newsletter_block_snippet" t-install="mass_mailing" string="Newsletter Block" t-thumbnail="/website/static/src/img/snippets_thumbs/s_newsletter_block.png"/>
-        <t t-install="website_twitter" string="Twitter Scroller" t-thumbnail="/website/static/src/img/snippets_thumbs/s_twitter_scroll.png"/>
-        <t t-install="website_form" string="Form Builder" t-thumbnail="/website/static/src/img/s_website_form.png"/>
-        <t id="s_products_searchbar" t-install="website_sale" string="Products Search" t-thumbnail="/website/static/src/img/snippets_thumbs/s_products_searchbar.png"/>
-        <t id="s_products_recently_viewed" t-install="website_sale" string="Products Recently Viewed" t-thumbnail="/website/static/src/img/snippets_thumbs/s_products_recently_viewed.png"/>
+    <xpath expr="//snippets[@id='snippet_structure']" position="inside">
+        <t t-install="mass_mailing" string="Newsletter Block" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_block_preview.png"/>
+        <t t-install="mass_mailing" string="Newsletter Aside" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_aside_preview.webp"/>
+        <t t-install="mass_mailing" string="Newsletter Centered" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_centered_preview.jpg"/>
+        <t t-install="mass_mailing" string="Newsletter Grid" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_grid_preview.jpg"/>
+        <t t-install="mass_mailing" string="Newsletter Popup" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_subscribe_popup_preview.png"/>
+        <t t-install="mass_mailing" string="Newsletter Box" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_box_preview.jpg"/>
+        <t t-install="mass_mailing_sms" string="Newsletter SMS Notifications" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_sms_notifications_preview.png"/>
+        <t t-install="mass_mailing" string="Newsletter Benefits" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_newsletter_benefits_popup_preview.webp"/>
+        <t t-install="website_payment" string="Donation" group="contact_and_forms"
+            t-image-preview="/website/static/src/img/snippets_previews/s_donation_preview.png"/>
+        <t t-install="website_sale" string="Products Carousel" group="catalog"
+            t-image-preview="/website/static/src/img/snippets_previews/s_dynamic_snippet_products_preview.webp"/>
     </xpath>
-    <xpath expr="//div[@id='snippet_content']//t[@t-snippet][last()]" position="after">
-        <t t-install="website_event" string="Local Events" t-thumbnail="/website/static/src/img/snippets_thumbs/s_local_events.png"/>
-        <t t-install="website_mail_channel" string="Discussion Group" t-thumbnail="/website/static/src/img/snippets_thumbs/s_button_channel_subscribe.png"/>
-        <t id="newsletter_snippet" t-install="mass_mailing" string="Newsletter" t-thumbnail="/website/static/src/img/snippets_thumbs/s_newsletter_subscribe_form.png"/>
-        <t id="s_products_searchbar_input" t-install="website_sale" string="Products Search Input" t-thumbnail="/website/static/src/img/snippets_thumbs/s_products_searchbar.png"/>
+    <xpath expr="//snippets[@id='snippet_content']" position="inside">
+        <t id="newsletter_snippet" t-install="mass_mailing" string="Newsletter" t-thumbnail="/website/static/src/img/snippets_thumbs/s_newsletter_subscribe_form.svg"/>
+        <t t-install="website_mail_group" string="Discussion Group" t-thumbnail="/website/static/src/img/snippets_thumbs/s_group.svg"/>
+        <t t-install="website_payment" string="Donation Button" t-thumbnail="/website/static/src/img/snippets_thumbs/s_donation_button.svg"/>
+        <t t-install="website_sale" string="Add to Cart Button" t-thumbnail="/website/static/src/img/snippets_thumbs/s_donation_button.svg"/>
     </xpath>
 </template>
 
-<template id="snippet_options">
-    <t t-call="web_editor.snippet_options"/>
-
-    <!-- COLOR | .s_three_columns | .s_comparisons -->
-    <div data-selector=".s_three_columns .row > div, .s_comparisons .row > div, .s_tabs .row > div"
-         data-target=".card">
-        <we-colorpicker string="Color"
-            data-select-style="true"
-            data-css-property="background-color"
-            data-color-prefix="bg-"/>
-    </div>
-
-    <!-- COLOR | .s_cards -->
-    <div data-selector=".s_card, .accordion .card">
-        <we-colorpicker string="Color"
-            data-select-style="true"
-            data-css-property="background-color"
-            data-color-prefix="bg-"/>
-    </div>
-
-    <!-- H-ALIGN | .s_btn -->
-    <div data-selector=".s_btn, .s_share">
-        <we-select string="Alignment">
-            <we-button data-select-class="text-left">Left</we-button>
-            <we-button data-select-class="text-center">Center</we-button>
-            <we-button data-select-class="text-right">Right</we-button>
-        </we-select>
-    </div>
-
-    <div data-selector=".s_alert, .s_card">
-        <we-select string="Width">
-            <we-button data-select-class="w-25">25%</we-button>
-            <we-button data-select-class="w-50">50%</we-button>
-            <we-button data-select-class="w-75">75%</we-button>
-            <we-button data-select-class="w-100">100%</we-button>
-        </we-select>
-    </div>
-
-    <!-- Carousel | .s_carousel | .s_quotes_carousel -->
-    <div data-js="Carousel"
-        data-selector="section"
-        data-target="> .carousel">
-        <we-select string="Transition">
-            <we-button data-select-class="slide">Slide</we-button>
-            <we-button data-select-class="carousel-fade slide">Fade</we-button>
-            <we-divider/>
-            <we-button data-select-class="">None</we-button>
-        </we-select>
-        <we-select string="Style">
-            <we-button data-select-class="s_carousel_bordered">Bordered</we-button>
-            <we-button data-select-class="s_carousel_boxed">Boxed</we-button>
-            <we-button data-select-class="s_carousel_rounded">Rounded</we-button>
-            <we-divider/>
-            <we-button data-select-class="s_carousel_default">Default</we-button>
-        </we-select>
-        <we-input string="Speed" class="o_we_inline"
-                  data-select-data-attribute="0s" data-attribute-name="interval"
-                  data-unit="s" data-save-unit="ms" data-step="0.1"/>
-    </div>
-
-    <div data-js="CarouselItem"
-         data-selector=".carousel-item">
-        <we-button data-slide="left" data-no-preview="true" class="fa fa-fw fa-angle-left"/>
-        <we-button data-slide="right" data-no-preview="true" class="fa fa-fw fa-angle-right"/>
-        <we-button data-add-slide="true" data-no-preview="true" class="fa fa-fw fa-plus"/>
-        <we-button data-remove-slide="true" data-no-preview="true" class="fa fa-fw fa-minus"/>
-    </div>
-
-    <div data-js="navTabs" data-selector="section .row > div" data-target=".nav-tabs">
-        <we-button data-add-tab="1" data-no-preview="true">Add Tab</we-button>
-        <we-button data-remove-tab="1" data-name="remove_tab_opt" data-no-preview="true">Remove Tab</we-button>
-    </div>
-
-    <!-- Accordion -->
-    <div data-js="collapse"
-         data-selector='.accordion > .card'
-         data-drop-in='.accordion:has(> .card)'/>
-
-    <div data-js="layout_column"
-        data-selector="section"
-        data-target="> * > .row:not(.s_nb_column_fixed)">
-        <we-select string="Number of columns" data-no-preview="true">
-            <we-button data-select-count="1">1</we-button>
-            <we-button data-select-count="2">2</we-button>
-            <we-button data-select-count="3">3</we-button>
-            <we-button data-select-count="4">4</we-button>
-            <we-button data-select-count="5">5</we-button>
-            <we-button data-select-count="6">6</we-button>
-        </we-select>
-    </div>
-
-    <!-- Move snippets around -->
-    <div data-js="SnippetMove"
-         data-selector="section">
-        <we-button class="fa fa-fw fa-angle-up" data-move-snippet="prev" data-no-preview="true"/>
-        <we-button class="fa fa-fw fa-angle-down" data-move-snippet="next" data-no-preview="true"/>
-    </div>
-    <div data-js="SnippetMove"
-         data-selector=".row:not(.s_col_no_resize) > div">
-        <we-button class="fa fa-fw fa-angle-left" data-move-snippet="prev" data-no-preview="true"/>
-        <we-button class="fa fa-fw fa-angle-right" data-move-snippet="next" data-no-preview="true"/>
-    </div>
-
-    <!--  V-ALIGN -->
-    <div id="row_valign_snippet_option" data-selector=".s_text_image, .s_image_text, .s_three_columns" data-target=".row">
-        <we-select string="Alignment">
-            <we-button data-select-class="align-items-start">Top</we-button>
-            <we-button data-select-class="align-items-center">Middle</we-button>
-            <we-button data-select-class="align-items-end">Bottom</we-button>
-            <we-divider/>
-            <we-button data-select-class="align-items-stretch">Equal height</we-button>
-        </we-select>
-    </div>
-
-    <!-- Background Image -->
-    <div data-js="background" string="Background"
-        data-selector="section, .parallax, .carousel-item"
-        data-exclude=".s_hr, .s_image_gallery, .o_gallery .carousel-item">
-        <we-imagepicker class="o_we_inline" string="Background" data-background="" data-allow-videos=":not(.parallax, .s_parallax_bg)" data-first-filters="background"/>
-    </div>
-
-    <!-- Background Image Size/Position -->
-    <div data-js="BackgroundPosition"
-        data-selector="section, .parallax, .carousel-item"
-        data-exclude=".o_gallery .carousel-item">
-        <we-row>
-            <we-select data-no-preview="true">
-                <we-button data-background-type="cover">Cover</we-button>
-                <we-button data-background-type="repeat-pattern" data-name="background_repeat_opt">Repeat pattern</we-button>
-            </we-select>
-            <we-button class="fa fa-fw fa-arrows" title="Background Position"
-                       data-background-position-overlay="true" data-no-preview="true"/>
-        </we-row>
-        <we-multi data-css-property="background-size" data-dependencies="background_repeat_opt">
-            <we-input string="Width" data-select-style="auto" data-placeholder="auto" data-unit="px"/>
-            <we-input string="Height" data-select-style="auto" data-placeholder="auto" data-unit="px"/>
-        </we-multi>
-    </div>
-
-    <!-- Parallax -->
-    <div data-js="parallax" data-selector=".parallax">
-        <we-select string="Scroll Speed" data-attribute-name="scrollBackgroundRatio" data-attribute-default-value="0">
-            <we-button data-select-data-attribute="0">No-scroll</we-button>
-            <we-divider/>
-            <we-button data-select-data-attribute="1">Fixed</we-button>
-            <we-divider/>
-            <we-button data-select-data-attribute="0.6">Very Slow</we-button>
-            <we-button data-select-data-attribute="1.2">Slow</we-button>
-            <we-button data-select-data-attribute="1.6">Fast</we-button>
-            <we-button data-select-data-attribute="2">Very Fast</we-button>
-        </we-select>
-    </div>
-
-    <!-- Color | Section -->
-    <div id="so_main_colorpicker"
-         data-selector="section, .carousel-item"
-         data-exclude=".parallax, .o_gallery .carousel-item">
-        <we-colorpicker string="Background Color"
-            data-select-style="true"
-            data-css-property="background-color"
-            data-color-prefix="bg-"/>
-    </div>
-
-    <!-- FILTER | .s_parallax -->
-    <div data-selector=".parallax">
-        <we-colorpicker string="Filter"
-            data-select-style="true"
-            data-css-property="background-color"
-            data-color-prefix="bg-"
-            data-excluded="common, theme, custom"/>
-    </div>
-
-    <!-- Color | Columns -->
-    <div data-selector="section .row > div"
-         data-exclude=".s_col_no_bgcolor, .s_col_no_bgcolor.row > div, .o_gallery .row > div">
-        <we-colorpicker string="Background Color"
-            data-select-style="true"
-            data-css-property="background-color"
-            data-color-prefix="bg-"/>
-    </div>
-
-    <div data-selector="section .row > div"
-        data-exclude=".s_col_no_bgcolor, .s_col_no_bgcolor.row > div, .o_gallery .row > div">
-        <we-row string="Border" class="o_we_inline">
-            <we-colorpicker data-dependencies="border_width_opt"
-                            data-select-style="true" data-css-property="border-color" data-color-prefix="border-"/>
-            <we-input class="o_we_inline" data-name="border_width_opt"
-                      data-select-style="0" data-css-property="border-width"
-                      data-unit="px" data-extra-class="border"/>
-        </we-row>
-        <we-input string="Rounded" class="o_we_inline"
-                  data-dependencies="border_width_opt"
-                  data-select-style="0" data-css-property="border-radius"
-                  data-unit="px" data-extra-class="rounded"/>
-        <we-checkbox string="Shadow" data-select-class="shadow"/>
-    </div>
-
-    <div data-js="sizing_y"
-        data-selector="section, .row > div, .parallax, .s_hr, .s_btn, .carousel-item"
-        data-exclude="section:has(> .carousel), .o_gallery .carousel-item"/>
-
-    <div data-js="sizing_x"
-        data-selector=".row > div"
-        data-drop-near=".row > div"
-        data-exclude=".s_col_no_resize.row > div"/>
-
-    <div id="so_snippet_addition"
-        data-selector="section, .parallax, .s_popup"
-        data-drop-in=":not(p).oe_structure:not(.oe_structure_solo), :not(p)[data-oe-type=html], :not(p).oe_structure.oe_structure_solo:not(:has(> section, > div))"/>
-
-    <!-- Main content drop -->
-    <div id="so_content_addition"
-        data-selector="blockquote, .s_btn, .s_card, .s_alert, .o_facebook_page, .s_share, .s_rating, .s_hr, .s_countdown, .s_chart"
-        data-drop-near="p, h1, h2, h3, blockquote, .s_btn, .s_card, .s_alert, .o_facebook_page, .s_share, .s_rating, .s_hr, .s_chart"
-        data-drop-in=".content, nav"/>
-
-    <div data-js="ul"
-         data-selector=":not(li) > ul:has(ul,ol), :not(li) > ol:has(ul,ol)">
-        <we-checkbox string="Folded list" data-select-class="o_ul_folded"/>
-    </div>
-
-    <div data-js="menu_data"
-         data-selector="#top_menu li > a"
-         data-exclude=".dropdown-toggle"
-         data-no-check="true"/>
-
-    <div data-js="company_data"
-         data-selector="[data-oe-expression='res_company.partner_id']"
-         data-no-check="true"/>
-
-    <div data-js="topMenuTransparency"
-        data-selector="[data-main-object^='website.page('] #wrapwrap > header"
-        data-no-check="true">
-        <we-checkbox string="Transparent" data-transparent="true" data-no-preview="true"/>
-    </div>
-
-    <div data-js="topMenuColor"
-         data-selector="[data-main-object^='website.page('] #wrapwrap > header"
-         data-no-check="true">
-        <we-colorpicker string="Background Color"
-            data-select-style="true"
-            data-css-property="background-color"
-            data-color-prefix="bg-"
-            data-excluded="theme, common, custom"/>
-    </div>
-
-    <!-- Anchor Name -->
-    <div data-js="anchor"
-        data-selector=":not(p).oe_structure > *, :not(p)[data-oe-type=html] > *"
-        data-exclude=".modal *">
-        <we-button class="fa fa-fw fa-link"
-                   title="Create a link to target this section"
-                   data-no-preview="true"/>
-    </div>
-
-    <!-- Mega Menu settings -->
-    <div data-selector=".o_mega_menu">
-        <we-select string="Size">
-            <we-button data-select-class="">Full-Width</we-button>
-            <we-button data-select-class="o_mega_menu_container_size">Narrow</we-button>
-        </we-select>
-    </div>
-
-    <div data-selector=".o_mega_menu .nav-link"
-         data-drop-in=".o_mega_menu nav"
-         data-drop-near=".o_mega_menu .nav-link"/>
-
-    <div data-js="CoverProperties" data-selector=".o_record_cover_container" data-no-check="true">
-        <we-imagepicker class="o_we_inline" string="Cover" data-background="" data-first-filters="cover"/>
-        <we-select string="Size" data-cover-opt-name="size">
-            <we-button data-select-class="o_record_has_cover o_full_screen_height">Full Screen</we-button>
-            <we-button class="o_record_cover_opt_size_default" data-select-class="o_record_has_cover o_half_screen_height">Half Screen</we-button>
-            <we-button data-select-class="o_record_has_cover cover_auto">Fit text</we-button>
-        </we-select>
-        <we-select string="Filter Intensity" data-cover-opt-name="filters">
-            <we-button data-filter-value="0.0">None</we-button>
-            <we-button data-filter-value="0.2">Low</we-button>
-            <we-button data-filter-value="0.4">Medium</we-button>
-            <we-button data-filter-value="0.6">High</we-button>
-        </we-select>
-        <we-select string="Filter Color" data-cover-opt-name="filters">
-            <we-button data-filter-color="oe_black">Black</we-button>
-            <we-button data-filter-color="oe_none">White</we-button>
-            <we-button data-filter-color="bg-primary">Primary</we-button>
-            <we-button data-filter-color="bg-secondary">Secondary</we-button>
-            <we-button data-filter-color="oe_blue">Blue</we-button>
-            <we-button data-filter-color="oe_yellow">Yellow</we-button>
-            <we-button data-filter-color="oe_red">Red</we-button>
-            <we-button data-filter-color="oe_purple">Purple</we-button>
-            <we-button data-filter-color="oe_green">Green</we-button>
-        </we-select>
-        <we-select string="Text Size" data-cover-opt-name="text_size">
-            <we-button data-select-class="o_record_cover_font_hero">Hero</we-button>
-            <we-button data-select-class="o_record_cover_font_huge">Huge</we-button>
-            <we-button data-select-class="o_record_cover_font_big">Big</we-button>
-            <we-button data-select-class="">Regular</we-button>
-            <we-button data-select-class="o_record_cover_font_small">Small</we-button>
-            <we-button data-select-class="o_record_cover_font_tiny">Tiny</we-button>
-        </we-select>
-        <we-select string="Text Alignment" data-cover-opt-name="text_align">
-            <we-button data-select-class="">Left</we-button>
-            <we-button data-select-class="text-center">Centered</we-button>
-            <we-button data-select-class="text-right">Right</we-button>
-        </we-select>
-    </div>
-
-    <!-- Stretch section -->
-    <div data-selector="section"
-        data-target="> .container, > .container-fluid, > .o_container_small">
-        <we-select string="Width" class="o_we_inline">
-            <we-button data-select-class="container-fluid">Full</we-button>
-            <we-button data-select-class="container">Regular</we-button>
-            <we-button data-select-class="o_container_small">Small</we-button>
-        </we-select>
-    </div>
-
-    <!-- Min height of section -->
-    <div data-selector="section">
-        <we-select string="Height" class="o_we_inline">
-            <we-button data-select-class="">Fit content</we-button>
-            <we-button data-select-class="o_half_screen_height">Half screen</we-button>
-            <we-button data-select-class="o_full_screen_height">Full screen</we-button>
-        </we-select>
-    </div>
-    <!-- Scroll to next section button (only for full height) -->
-    <div data-js="ScrollButton" data-selector="section">
-        <we-row string="Scroll down button" class="o_we_inline o_scroll_button_opt">
-            <we-colorpicker data-select-style="true"
-                data-css-property="color"
-                data-color-prefix="text-"
-                data-apply-to=".o_scroll_button"
-                data-dependencies="scroll_button_opt"/>
-            <we-colorpicker
-                data-select-style="true"
-                data-css-property="background-color"
-                data-color-prefix="bg-"
-                data-apply-to=".o_scroll_button"
-                data-dependencies="scroll_button_opt"/>
-            <we-checkbox data-toggle-button="true"
-                data-no-preview="true"
-                data-name="scroll_button_opt"/>
-        </we-row>
-    </div>
-</template>
 </odoo>

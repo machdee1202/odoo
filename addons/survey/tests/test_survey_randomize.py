@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import tagged, TransactionCase
 
 
+@tagged('at_install', '-post_install')  # LEGACY at_install
 class TestSurveyRandomize(TransactionCase):
     def test_01_generate_randomized_questions(self):
         """ Use random generate for a survey and verify that questions within the page are selected accordingly """
@@ -12,6 +13,7 @@ class TestSurveyRandomize(TransactionCase):
         page_1 = Question.create({
             'title': 'Page 1',
             'is_page': True,
+            'question_type': False,
             'sequence': 1,
             'random_questions_count': 3
         })
@@ -21,6 +23,7 @@ class TestSurveyRandomize(TransactionCase):
         page_2 = Question.create({
             'title': 'Page 2',
             'is_page': True,
+            'question_type': False,
             'sequence': 100,
             'random_questions_count': 5
         })
@@ -30,6 +33,7 @@ class TestSurveyRandomize(TransactionCase):
         page_3 = Question.create({
             'title': 'Page 2',
             'is_page': True,
+            'question_type': False,
             'sequence': 1000,
             'random_questions_count': 4
         })
@@ -52,7 +56,7 @@ class TestSurveyRandomize(TransactionCase):
     def _add_questions(self, question_and_pages, page, count):
         for i in range(count):
             question_and_pages |= self.env['survey.question'].sudo().create({
-                'title': page.title + ' Q' + str(i + 1),
+                'title': f'{page.title} Q{i + 1}',
                 'sequence': page.sequence + (i + 1)
             })
 

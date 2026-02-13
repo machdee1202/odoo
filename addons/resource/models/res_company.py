@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models, _
+from odoo.addons.base.models.res_partner import _tz_get
 
 
 class ResCompany(models.Model):
@@ -11,24 +11,38 @@ class ResCompany(models.Model):
         'resource.calendar', 'company_id', 'Working Hours')
     resource_calendar_id = fields.Many2one(
         'resource.calendar', 'Default Working Hours', ondelete='restrict')
+    tz = fields.Selection(
+        _tz_get, string='Timezone', required=True,
+        default=lambda self: self.env.context.get('tz') or self.env.user.tz or 'UTC')
 
     @api.model
     def _init_data_resource_calendar(self):
         self.search([('resource_calendar_id', '=', False)])._create_resource_calendar()
 
     def _create_resource_calendar(self):
-        for company in self:
-            company.resource_calendar_id = self.env['resource.calendar'].create({
-                'name': _('Standard 40 hours/week'),
-                'company_id': company.id
-            }).id
+        vals_list = [
+            company._prepare_resource_calendar_values()
+            for company in self
+        ]
+        resource_calendars = self.env['resource.calendar'].create(vals_list)
+        for company, calendar in zip(self, resource_calendars):
+            company.resource_calendar_id = calendar
 
-    @api.model
-    def create(self, values):
-        company = super(ResCompany, self).create(values)
-        if not company.resource_calendar_id:
-            company.sudo()._create_resource_calendar()
+    def _prepare_resource_calendar_values(self):
+        self.ensure_one()
+        return {
+            'name': _('Standard 40 hours/week'),
+            'company_id': self.id,
+        }
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        companies = super().create(vals_list)
+        companies_without_calendar = companies.filtered(lambda c: not c.resource_calendar_id)
+        if companies_without_calendar:
+            companies_without_calendar.sudo()._create_resource_calendar()
         # calendar created from form view: no company_id set because record was still not created
-        if not company.resource_calendar_id.company_id:
-            company.resource_calendar_id.company_id = company.id
-        return company
+        for company in companies:
+            if not company.resource_calendar_id.company_id:
+                company.resource_calendar_id.company_id = company.id
+        return companies

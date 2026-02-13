@@ -1,7 +1,7 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* payment_authorize
-# 
+# * payment_authorize
+#
 # Translators:
 # Ediz Duman <neps1192@gmail.com>, 2019
 # Martin Trigaux, 2019
@@ -9,105 +9,196 @@
 # Ramiz Deniz Öner <deniz@denizoner.com>, 2019
 # Hüseyin Cem Aras <hcemaras@gmail.com>, 2019
 # Umur Akın <umura@projetgrup.com>, 2019
-# 
+# "Dylan Kiss (dyki)" <dyki@odoo.com>, 2025.
+# Weblate <noreply-mt-weblate@weblate.org>, 2025.
+# DeepL <noreply-mt-deepl@weblate.org>, 2025.
+# Odoo Turkish Import <dyki+tr@odoo.com>, 2025.
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server saas~12.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:12+0000\n"
-"Last-Translator: Umur Akın <umura@projetgrup.com>, 2019\n"
-"Language-Team: Turkish (https://www.transifex.com/odoo/teams/41243/tr/)\n"
+"POT-Creation-Date: 2025-10-08 18:39+0000\n"
+"PO-Revision-Date: 2025-11-20 13:21+0000\n"
+"Last-Translator: Odoo Turkish Import <dyki+tr@odoo.com>\n"
+"Language-Team: Turkish <https://translate.odoo.com/projects/odoo-19/"
+"payment_authorize/tr/>\n"
+"Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Language: tr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #. module: payment_authorize
-#: code:addons/payment_authorize/controllers/main.py:0
-#, python-format
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
 msgid ""
-" If you don't have any account, ask your salesperson to grant you a portal "
-"access. "
+"<select id=\"o_authorize_account_type\" required=\"\" class=\"form-"
+"select\">\n"
+"                        <option value=\"checking\">Personal Checking</"
+"option>\n"
+"                        <option value=\"savings\">Personal Savings</option>\n"
+"                        <option value=\"businessChecking\">Business "
+"Checking</option>\n"
+"                    </select>"
 msgstr ""
+"<select id=\"o_authorize_account_type\" required=\"\" class=\"form-"
+"select\">\n"
+"                        <option value=\"checking\">Bireysel Vadesiz</"
+"option>\n"
+"                        <option value=\"savings\">Bireysel Vadeli</option>\n"
+"                        <option value=\"businessChecking\">Ticari Vadesiz</"
+"option>\n"
+"                    </select>"
 
 #. module: payment_authorize
-#: model:ir.model.fields,field_description:payment_authorize.field_payment_acquirer__authorize_client_key
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "ABA Routing Number"
+msgstr "ABA Yönlendirme Numarası"
+
+#. module: payment_authorize
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_provider__authorize_client_key
 msgid "API Client Key"
-msgstr ""
+msgstr "API Client Key"
 
 #. module: payment_authorize
-#: model:ir.model.fields,field_description:payment_authorize.field_payment_acquirer__authorize_login
-msgid "API Login Id"
-msgstr "API Girişi Kimliği"
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_provider__authorize_login
+msgid "API Login ID"
+msgstr "API Login ID"
 
 #. module: payment_authorize
-#: model:ir.model.fields,field_description:payment_authorize.field_payment_acquirer__authorize_signature_key
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_provider__authorize_signature_key
 msgid "API Signature Key"
-msgstr ""
+msgstr "API Signature Key"
 
 #. module: payment_authorize
-#: model:ir.model.fields,field_description:payment_authorize.field_payment_acquirer__authorize_transaction_key
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_provider__authorize_transaction_key
 msgid "API Transaction Key"
 msgstr "API İşlem Anahtarı"
 
 #. module: payment_authorize
-#: model:ir.model.fields.selection,name:payment_authorize.selection__payment_acquirer__provider__authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "Account Number"
+msgstr "Hesap Numarası"
+
+#. module: payment_authorize
+#: model:ir.model.fields.selection,name:payment_authorize.selection__payment_provider__code__authorize
 msgid "Authorize.Net"
 msgstr "Authorize.Net"
 
 #. module: payment_authorize
-#: code:addons/payment_authorize/models/authorize_request.py:0
-#, python-format
-msgid ""
-"Authorize.net Error:\n"
-"Code: %s\n"
-"Message: %s"
-msgstr ""
-
-#. module: payment_authorize
 #: model:ir.model.fields,field_description:payment_authorize.field_payment_token__authorize_profile
-msgid "Authorize.net Profile ID"
-msgstr "Authorize.net Profil Kimliği (ID)"
+msgid "Authorize.Net Profile ID"
+msgstr "Authorize.Net Profil Kimliği"
 
 #. module: payment_authorize
-#: code:addons/payment_authorize/models/payment.py:0
-#, python-format
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "Bank Account Type"
+msgstr "Banka Hesap Türü"
+
+#. module: payment_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "Bank Name"
+msgstr "Banka Adı"
+
+#. module: payment_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "Card Code"
+msgstr "Kart Kodu"
+
+#. module: payment_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "Card Number"
+msgstr "Kart numarası"
+
+#. module: payment_authorize
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_provider__code
+msgid "Code"
+msgstr "Kod"
+
+#. module: payment_authorize
+#. odoo-python
+#: code:addons/payment_authorize/models/payment_provider.py:0
 msgid ""
-"Authorize: received data with missing reference (%s) or trans_id (%s) or "
-"fingerprint (%s)"
+"Could not fetch merchant details:\n"
+"%s"
 msgstr ""
-"Authorize: veri kayıp referans ile alındı (%s) veya trans_id (%s) veya "
-"fingerprint (%s)"
+"Satıcı ayrıntıları alınamadı:\n"
+"%s"
 
 #. module: payment_authorize
-#: model_terms:ir.ui.view,arch_db:payment_authorize.acquirer_form_authorize
+#. odoo-python
+#: code:addons/payment_authorize/models/payment_transaction.py:0
+msgid ""
+"Could not retrieve the transaction details. (error code: %(error_code)s; "
+"error_details: %(error_message)s)"
+msgstr ""
+"İşlem ayrıntıları alınamadı. (hata kodu: %(error_code)s; hata_ayrıntıları: %"
+"(error_message)s)"
+
+#. module: payment_authorize
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_provider__display_name
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_token__display_name
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_transaction__display_name
+msgid "Display Name"
+msgstr "İsim Göster"
+
+#. module: payment_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "Expiration"
+msgstr "Geçerlilik Tarihi"
+
+#. module: payment_authorize
+#. odoo-python
+#: code:addons/payment_authorize/models/payment_provider.py:0
+msgid ""
+"Failed to authenticate.\n"
+"%s"
+msgstr ""
+"Kimlik doğrulaması yapılamadı.\n"
+"%s"
+
+#. module: payment_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.payment_provider_form
 msgid "Generate Client Key"
-msgstr ""
+msgstr "Generate Client Key"
 
 #. module: payment_authorize
-#: model_terms:ir.ui.view,arch_db:payment_authorize.acquirer_form_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.payment_provider_form
 msgid "How to get paid with Authorize.Net"
-msgstr "Authorize.Net ile nasıl ödeme yapılır?"
+msgstr "Authorize.Net ile nasıl ödeme yapılır"
 
 #. module: payment_authorize
-#: code:addons/payment_authorize/models/payment.py:0
-#, python-format
-msgid ""
-"Invalid token found: the Authorize profile is missing.Please make sure the "
-"token has a valid acquirer reference."
-msgstr ""
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_provider__id
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_token__id
+#: model:ir.model.fields,field_description:payment_authorize.field_payment_transaction__id
+msgid "ID"
+msgstr "ID"
 
 #. module: payment_authorize
-#: model:ir.model,name:payment_authorize.model_payment_acquirer
-msgid "Payment Acquirer"
-msgstr "Ödeme Alıcısı"
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "MM"
+msgstr "MM"
+
+#. module: payment_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "Name On Account"
+msgstr "Hesaptaki Adı"
+
+#. module: payment_authorize
+#. odoo-python
+#: code:addons/payment_authorize/models/payment_provider.py:0
+msgid "Only one currency can be selected by Authorize.Net account."
+msgstr "Authorize.Net hesabı yalnızca tek bir para birimi seçimine izin verir."
+
+#. module: payment_authorize
+#: model:ir.model,name:payment_authorize.model_payment_provider
+msgid "Payment Provider"
+msgstr "Ödeme Sağlayıcı"
 
 #. module: payment_authorize
 #: model:ir.model,name:payment_authorize.model_payment_token
 msgid "Payment Token"
-msgstr "Ödeme Token'ı"
+msgstr "Ödeme Belirteci"
 
 #. module: payment_authorize
 #: model:ir.model,name:payment_authorize.model_payment_transaction
@@ -115,91 +206,75 @@ msgid "Payment Transaction"
 msgstr "Ödeme İşlemi"
 
 #. module: payment_authorize
-#: code:addons/payment_authorize/controllers/main.py:0
-#, python-format
-msgid "Please complete your profile. "
-msgstr "Lütfen profilinizi tamamlayınız."
+#. odoo-javascript
+#: code:addons/payment_authorize/static/src/interactions/payment_form.js:0
+msgid "Payment processing failed"
+msgstr "Ödeme işleme başarısız oldu"
 
 #. module: payment_authorize
-#: code:addons/payment_authorize/controllers/main.py:0
-#, python-format
-msgid "Please sign in to complete the payment."
-msgstr ""
-
-#. module: payment_authorize
-#: model:ir.model.fields,field_description:payment_authorize.field_payment_acquirer__provider
-#: model:ir.model.fields,field_description:payment_authorize.field_payment_token__provider
-msgid "Provider"
-msgstr "Sağlayıcı"
-
-#. module: payment_authorize
-#: model:ir.model.fields,field_description:payment_authorize.field_payment_token__save_token
-msgid "Save Cards"
-msgstr "Kartları Kaydet"
-
-#. module: payment_authorize
-#. openerp-web
-#: code:addons/payment_authorize/static/src/js/payment_form.js:0
-#: code:addons/payment_authorize/static/src/js/payment_form.js:0
-#, python-format
-msgid "Server Error"
-msgstr "Sunucu Hatası"
-
-#. module: payment_authorize
-#: code:addons/payment_authorize/models/payment.py:0
-#, python-format
-msgid "The Customer Profile creation in Authorize.NET failed."
-msgstr "Authorize.NET üzerinde müşteri profili oluşturma işleminde hata !"
-
-#. module: payment_authorize
-#: code:addons/payment_authorize/controllers/main.py:0
-#, python-format
+#. odoo-python
+#: code:addons/payment_authorize/models/payment_transaction.py:0
 msgid ""
-"The transaction cannot be processed because some contact details are missing"
-" or invalid: "
+"Received data with status code \"%(status)s\" and error code \"%(error)s\"."
 msgstr ""
-"İşlem, bazı kişi detayları olmayışından ya da doğrulanmayışından dolayı "
-"gerçekleştirilemedi."
+"Durum kodu \"%(status)s\" ve hata kodu \"%(error)s\" olan veriler alındı."
+
+#. module: payment_authorize
+#. odoo-python
+#: code:addons/payment_authorize/controllers/main.py:0
+msgid "Received tampered payment request data."
+msgstr "Üzerinde oynanmış ödeme isteği verileri alındı."
+
+#. module: payment_authorize
+#: model_terms:ir.ui.view,arch_db:payment_authorize.payment_provider_form
+msgid "Set Account Currency"
+msgstr "Hesap Para Birimini Ayarla"
+
+#. module: payment_authorize
+#: model:ir.model.fields,help:payment_authorize.field_payment_provider__authorize_login
+msgid "The ID solely used to identify the account with Authorize.Net"
+msgstr "Yalnızca hesabı Authorize.Net tanımlamak için kullanılan kimlik"
+
+#. module: payment_authorize
+#: model:ir.model.fields,help:payment_authorize.field_payment_provider__authorize_client_key
+msgid ""
+"The public client key. To generate directly from Odoo or from Authorize.Net "
+"backend."
+msgstr ""
+"Ortak istemci anahtarı. Doğrudan Odoo'dan veya Authorize.Net arka uçtan "
+"oluşturmak için."
+
+#. module: payment_authorize
+#: model:ir.model.fields,help:payment_authorize.field_payment_provider__code
+msgid "The technical code of this payment provider."
+msgstr "Bu ödeme sağlayıcısının teknik kodu."
+
+#. module: payment_authorize
+#. odoo-python
+#: code:addons/payment_authorize/models/payment_transaction.py:0
+msgid ""
+"The transaction is not in a status to be refunded. (status: %(status)s, "
+"details: %(message)s)"
+msgstr ""
+"İşlem, iade edilebilir bir durumda değil. (durum: %(status)s, detay: %"
+"(message)s)"
 
 #. module: payment_authorize
 #: model:ir.model.fields,help:payment_authorize.field_payment_token__authorize_profile
 msgid ""
-"This contains the unique reference for this partner/payment token "
-"combination in the Authorize.net backend"
+"The unique reference for the partner/token combination in the Authorize.net "
+"backend."
 msgstr ""
-"Bu, bu ortak / ödeme token kombinasyonu için Authorize.net backend'de "
-"benzersiz referansı içeriyor"
+"Authorize.net arka ucundaki ortak/belirteç kombinasyonu için benzersiz "
+"başvuru."
 
 #. module: payment_authorize
-#: model:ir.model.fields,help:payment_authorize.field_payment_token__save_token
-msgid ""
-"This option allows customers to save their credit card as a payment token "
-"and to reuse it for a later purchase. If you manage subscriptions (recurring"
-" invoicing), you need it to automatically charge the customer when you issue"
-" an invoice."
-msgstr ""
-"Bu seçenek müşterilere bir ödeme fişi olarak kredi kartlarını kaydetmelerine"
-" ve onları daha sonraki satın almalarda kullanmalarına izin verir. Eğer "
-"aboneliklerinizi yönetiyorsanız (yinelenen faturalar), bir fatura "
-"düzenlediğiniz zaman, müşteriyi otomatik olarak ücretlendirmeniz gerekir. "
+#. odoo-python
+#: code:addons/payment_authorize/models/payment_provider.py:0
+msgid "This action cannot be performed while the provider is disabled."
+msgstr "Bu işlem, sağlayıcı devre dışıyken gerçekleştirilemez."
 
 #. module: payment_authorize
-#: code:addons/payment_authorize/models/payment.py:0
-#, python-format
-msgid ""
-"Unable to fetch Client Key, make sure the API Login and Transaction Key are "
-"correct."
-msgstr ""
-
-#. module: payment_authorize
-#: code:addons/payment_authorize/models/payment.py:0
-#, python-format
-msgid "Warning"
-msgstr "Uyarı"
-
-#. module: payment_authorize
-#. openerp-web
-#: code:addons/payment_authorize/static/src/js/payment_form.js:0
-#, python-format
-msgid "We are not able to add your payment method at the moment."
-msgstr "Şuanda ödeme metodunuzu ekleyemiyoruz."
+#: model_terms:ir.ui.view,arch_db:payment_authorize.inline_form
+msgid "YY"
+msgstr "YY"

@@ -1,259 +1,235 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* website_rating
-# 
+# * portal_rating
+#
 # Translators:
-# Sergio Zanchetta <primes2h@gmail.com>, 2019
-# Francesco Garganese <francesco.garganese@aeromnia.aero>, 2019
-# Paolo Valier, 2019
-# David Minneci <david@numeko.it>, 2019
-# Léonie Bouchat <lbo@odoo.com>, 2019
-# 
+# Martin Trigaux, 2022
+#
+# "Dylan Kiss (dyki)" <dyki@odoo.com>, 2025.
+# "Marianna Ciofani (cima)" <cima@odoo.com>, 2025.
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server 16.0beta\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:17+0000\n"
-"PO-Revision-Date: 2019-08-26 09:16+0000\n"
-"Last-Translator: Léonie Bouchat <lbo@odoo.com>, 2019\n"
-"Language-Team: Italian (https://www.transifex.com/odoo/teams/41243/it/)\n"
+"POT-Creation-Date: 2025-10-08 18:38+0000\n"
+"PO-Revision-Date: 2025-10-16 17:04+0000\n"
+"Last-Translator: \"Marianna Ciofani (cima)\" <cima@odoo.com>\n"
+"Language-Team: Italian <https://translate.odoo.com/projects/odoo-19/"
+"portal_rating/it/>\n"
+"Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Language: it\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=3; plural=(n == 1) ? 0 : ((n != 0 && n % 1000000 == "
+"0) ? 1 : 2);\n"
+"X-Generator: Weblate 5.12.2\n"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
-msgid ""
-"#{widget.options['force_submit_url'] ? widget.options['force_submit_url'] : "
-"'/mail/chatter_post'}"
-msgstr ""
+#. module: portal_rating
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_rating_view_form
+msgid "<span> on </span>"
+msgstr "<span> su </span>"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_rating_composer.xml:0
-#, python-format
-msgid "&times;"
-msgstr "&times;"
+#. module: portal_rating
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_rating_view_form
+msgid "<span>by </span>"
+msgstr "<span>da </span>"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_rating_composer.xml:0
-#: code:addons/website_rating/static/src/xml/portal_rating_composer.xml:0
-#, python-format
-msgid "Add a review"
-msgstr ""
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_stars_static_popup_composer
+msgid "Add Review"
+msgstr "Aggiunta recensione"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "Average"
-msgstr "Medio"
+msgstr "Media"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
-msgid "Cancel"
-msgstr "Annulla"
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_rating_composer.xml:0
+msgid "Close"
+msgstr "Chiudi"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_rating_view_form
 msgid "Comment"
-msgstr "Commento"
+msgstr "Commenta"
 
-#. module: website_rating
-#: model:ir.model.fields,field_description:website_rating.field_rating_rating__publisher_id
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__publisher_id
 msgid "Commented by"
-msgstr ""
+msgstr "Commentato da"
 
-#. module: website_rating
-#: model:ir.model.fields,field_description:website_rating.field_rating_rating__publisher_datetime
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__publisher_datetime
 msgid "Commented on"
-msgstr ""
+msgstr "Commentato il"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
 msgid "Delete"
 msgstr "Elimina"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "Details"
 msgstr "Dettagli"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_ir_http__display_name
+#: model:ir.model.fields,field_description:portal_rating.field_mail_message__display_name
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__display_name
+msgid "Display Name"
+msgstr "Nome visualizzato"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
 msgid "Edit"
 msgstr "Modifica"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_stars_static_popup_composer
+msgid "Edit Review"
+msgstr "Modifica recensione"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/composer_patch.xml:0
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "Empty star"
+msgstr "Stella vuota"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/composer_patch.xml:0
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "Full star"
+msgstr "Stella piena"
+
+#. module: portal_rating
+#: model:ir.model,name:portal_rating.model_ir_http
+msgid "HTTP Routing"
+msgstr "Instradamento HTTP"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "Half a star"
-msgstr "Una mezza stella"
+msgstr "Mezza stella"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/portal_composer.js:0
-#, python-format
-msgid "I don't like it"
-msgstr "Non mi piace"
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_ir_http__id
+#: model:ir.model.fields,field_description:portal_rating.field_mail_message__id
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__id
+msgid "ID"
+msgstr "ID"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/portal_composer.js:0
-#, python-format
-msgid "I hate it"
-msgstr "Lo odio"
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/portal_composer.js:0
-#, python-format
-msgid "I like it"
-msgstr "Mi piace"
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/portal_composer.js:0
-#, python-format
-msgid "I love it"
-msgstr "Lo adoro"
-
-#. module: website_rating
-#: code:addons/website_rating/controllers/portal_rating.py:0
-#, python-format
+#. module: portal_rating
+#. odoo-python
+#: code:addons/portal_rating/controllers/portal_rating.py:0
 msgid "Invalid rating"
-msgstr ""
+msgstr "Valutazione non valida"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/portal_composer.js:0
-#, python-format
-msgid "It's okay"
-msgstr "Va bene"
-
-#. module: website_rating
-#: model:ir.model,name:website_rating.model_mail_message
+#. module: portal_rating
+#: model:ir.model,name:portal_rating.model_mail_message
 msgid "Message"
 msgstr "Messaggio"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_rating_composer.xml:0
-#: code:addons/website_rating/static/src/xml/portal_rating_composer.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_rating_composer.xml:0
 msgid "Modify your review"
-msgstr ""
+msgstr "Modifica la recensione"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#, python-format
-msgid "One star"
-msgstr "Una stella"
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+msgid "Post review"
+msgstr "Pubblica recensione"
 
-#. module: website_rating
-#: code:addons/website_rating/models/rating.py:0
-#, python-format
-msgid "Only the publisher of the website can change the rating comment"
-msgstr ""
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "Progress bar"
+msgstr "Barra di avanzamento"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
-msgid "Post comment"
-msgstr ""
-
-#. module: website_rating
-#: model:ir.model.fields,field_description:website_rating.field_rating_rating__website_published
-msgid "Published"
-msgstr "Pubblicata"
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
 msgid "Published on"
-msgstr ""
+msgstr "Pubblicato il"
 
-#. module: website_rating
-#: model:ir.model.fields,field_description:website_rating.field_rating_rating__publisher_comment
-msgid "Publisher Comment"
-msgstr ""
-
-#. module: website_rating
-#: model_terms:ir.ui.view,arch_db:website_rating.rating_rating_view_form
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__publisher_comment
 msgid "Publisher comment"
-msgstr ""
+msgstr "Commento editore"
 
-#. module: website_rating
-#: model:ir.model,name:website_rating.model_rating_rating
+#. module: portal_rating
+#: model:ir.model,name:portal_rating.model_rating_rating
 msgid "Rating"
 msgstr "Valutazione"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "Remove Selection"
+msgstr "Rimuovi selezione"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_stars_static_popup_composer
+msgid "Review"
+msgstr "Revisione"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_composer.js:0
+msgid ""
+"The rating is required. Please make sure to select one before sending your "
+"review."
 msgstr ""
+"La classificazione è obbligatoria. Assicurati di selezionarne una prima di "
+"inviare la tua recensione."
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
-msgid "Update comment"
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+msgid "Update review"
+msgstr "Aggiorna recensione"
+
+#. module: portal_rating
+#. odoo-python
+#: code:addons/portal_rating/models/rating_rating.py:0
+msgid "Updating rating comment require write access on related record"
 msgstr ""
+"L'aggiornamento del commento di valutazione richiede l'accesso in scrittura "
+"al record correlato"
 
-#. module: website_rating
-#: model:ir.model.fields,help:website_rating.field_rating_rating__website_published
-msgid "Visible on the website as a comment"
-msgstr "Visibile nel sito web come commento"
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_rating_composer.xml:0
+msgid "Write a review"
+msgstr "Scrivi una recensione"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/portal_chatter.js:0
-#, python-format
-msgid "Write your comment"
-msgstr ""
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "comments"
+msgstr "commenti"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#: code:addons/website_rating/static/src/xml/portal_chatter.xml:0
-#, python-format
-msgid "avatar"
-msgstr ""
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_rating_composer.xml:0
-#, python-format
-msgid "ratings)"
-msgstr ""
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/portal_tools.xml:0
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "stars"
 msgstr "stelle"

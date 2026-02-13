@@ -1,46 +1,51 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* stock_sms
-# 
+# * stock_sms
+#
 # Translators:
-# Martin Trigaux, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
-# 
+# Martin Trigaux, 2022
+#
+# "Tiffany Chang (tic)" <tic@odoo.com>, 2025.
+# Weblate <noreply-mt-weblate@weblate.org>, 2025.
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server 15.5alpha1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-23 11:33+0000\n"
-"PO-Revision-Date: 2019-08-26 09:14+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
-"Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
+"POT-Creation-Date: 2025-12-16 18:37+0000\n"
+"PO-Revision-Date: 2025-11-08 19:01+0000\n"
+"Last-Translator: Weblate <noreply-mt-weblate@weblate.org>\n"
+"Language-Team: Ukrainian <https://translate.odoo.com/projects/odoo-19/"
+"stock_sms/uk/>\n"
+"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Language: uk\n"
-"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != "
+"11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % "
+"100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
+"(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+"X-Generator: Weblate 5.12.2\n"
 
 #. module: stock_sms
 #: model:sms.template,body:stock_sms.sms_template_data_stock_delivery
 msgid ""
-"${object.company_id.name}: We are glad to inform you that your order has been shipped.\n"
-"            %if object.carrier_tracking_ref:\n"
-"                Your tracking reference is ${object.carrier_tracking_ref}.\n"
-"            %endif"
-msgstr ""
-
-#. module: stock_sms
-#: model:mail.template,body_html:stock_sms.mail_template_no_more_credit_sms
-msgid ""
-"<p>Dear ${object.name},</p>\n"
-"                <br/>\n"
-"                <p>There are no more credits on your IAP SMS account.<br/>\n"
-"                You can charge your IAP SMS account from the Settings of the Inventory app or from the General Settings.<br/></p>\n"
-"                <br/>\n"
-"                <p>Best regards,</p>\n"
-"                <p>Odoo S.A.</p>\n"
+"\n"
+"                {{ (object.company_id.name + ': We are glad to inform you "
+"that your order n° ' + object.origin + ' has been shipped.' if object.origin "
+"else object.company_id.name + ': We are glad to inform you that your order "
+"has been shipped.') + (' Your tracking reference is ' + "
+"(object.carrier_tracking_ref) + '.' if hasattr(object, "
+"'carrier_tracking_ref') and object.carrier_tracking_ref else '') }}\n"
 "            "
 msgstr ""
+"\n"
+"                {{ (object.company_id.name + ': Раді повідомити вас, що ваше "
+"замовлення n° ' + object.origin + ' доставлено.' if object.origin else "
+"object.company_id.name + ': Раді повідомити, що ваше замовлення "
+"доставлено.') + (' Референс відстеження ' + (object.carrier_tracking_ref) + "
+"'.' if hasattr(object, 'carrier_tracking_ref') and "
+"object.carrier_tracking_ref else '') }}\n"
+"            "
 
 #. module: stock_sms
 #: model_terms:ir.ui.view,arch_db:stock_sms.view_confirm_stock_sms
@@ -49,13 +54,8 @@ msgstr "Скасувати"
 
 #. module: stock_sms
 #: model:ir.model,name:stock_sms.model_res_company
-msgid "Companies"
-msgstr "Компанії"
-
-#. module: stock_sms
-#: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__company_id
 msgid "Company"
-msgstr "Компанія"
+msgstr ""
 
 #. module: stock_sms
 #: model:ir.model,name:stock_sms.model_res_config_settings
@@ -70,7 +70,7 @@ msgstr "Підтвердити"
 #. module: stock_sms
 #: model:ir.model,name:stock_sms.model_confirm_stock_sms
 msgid "Confirm Stock SMS"
-msgstr ""
+msgstr "Підтвердити складські SMS"
 
 #. module: stock_sms
 #: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__create_uid
@@ -80,42 +80,38 @@ msgstr "Створив"
 #. module: stock_sms
 #: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__create_date
 msgid "Created on"
-msgstr "Створено на"
+msgstr "Створено"
 
 #. module: stock_sms
 #: model:sms.template,name:stock_sms.sms_template_data_stock_delivery
 msgid "Delivery: Send by SMS Text Message"
-msgstr ""
+msgstr "Доставка: Надіслати через SMS повідомлення"
 
 #. module: stock_sms
 #: model_terms:ir.ui.view,arch_db:stock_sms.view_confirm_stock_sms
 msgid "Disable SMS"
-msgstr ""
+msgstr "Відключити SMS"
 
 #. module: stock_sms
 #: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__display_name
+#: model:ir.model.fields,field_description:stock_sms.field_res_company__display_name
+#: model:ir.model.fields,field_description:stock_sms.field_res_config_settings__display_name
+#: model:ir.model.fields,field_description:stock_sms.field_stock_picking__display_name
 msgid "Display Name"
 msgstr "Назва для відображення"
 
 #. module: stock_sms
 #: model:ir.model.fields,field_description:stock_sms.field_res_company__has_received_warning_stock_sms
 msgid "Has Received Warning Stock Sms"
-msgstr ""
-
-#. module: stock_sms
-#: model:mail.template,subject:stock_sms.mail_template_no_more_credit_sms
-msgid "IAP SMS Confirmation Notification"
-msgstr ""
+msgstr "Має отримане складське попереджувальне Sms"
 
 #. module: stock_sms
 #: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__id
+#: model:ir.model.fields,field_description:stock_sms.field_res_company__id
+#: model:ir.model.fields,field_description:stock_sms.field_res_config_settings__id
+#: model:ir.model.fields,field_description:stock_sms.field_stock_picking__id
 msgid "ID"
 msgstr "ID"
-
-#. module: stock_sms
-#: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms____last_update
-msgid "Last Modified on"
-msgstr "Останні зміни на"
 
 #. module: stock_sms
 #: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__write_uid
@@ -128,39 +124,28 @@ msgid "Last Updated on"
 msgstr "Останнє оновлення"
 
 #. module: stock_sms
-#: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__picking_id
-msgid "Picking"
+#: model:ir.model.fields,field_description:stock_sms.field_confirm_stock_sms__pick_ids
+msgid "Pick"
 msgstr "Комплектування"
 
 #. module: stock_sms
+#. odoo-python
 #: code:addons/stock_sms/models/stock_picking.py:0
 #: model_terms:ir.ui.view,arch_db:stock_sms.view_confirm_stock_sms
-#, python-format
 msgid "SMS"
 msgstr "SMS"
 
 #. module: stock_sms
-#: model:ir.model.fields,field_description:stock_sms.field_res_company__stock_move_sms_validation
-msgid "SMS Confirmation"
-msgstr ""
-
-#. module: stock_sms
 #: model:ir.model.fields,field_description:stock_sms.field_res_company__stock_sms_confirmation_template_id
 #: model:ir.model.fields,field_description:stock_sms.field_res_config_settings__stock_sms_confirmation_template_id
-#: model_terms:ir.ui.view,arch_db:stock_sms.res_config_settings_view_form_stock
 msgid "SMS Template"
 msgstr "Шаблон SMS"
 
 #. module: stock_sms
-#: model:ir.model.fields,field_description:stock_sms.field_res_config_settings__stock_move_sms_validation
-msgid "SMS Validation with stock move"
-msgstr ""
-
-#. module: stock_sms
 #: model:ir.model.fields,help:stock_sms.field_res_company__stock_sms_confirmation_template_id
 #: model:ir.model.fields,help:stock_sms.field_res_config_settings__stock_sms_confirmation_template_id
-msgid "SMS sent to the customer once the order is done."
-msgstr ""
+msgid "SMS sent to the customer once the order is delivered."
+msgstr "SMS надсилається клієнту після відправки замовлення."
 
 #. module: stock_sms
 #: model:ir.model,name:stock_sms.model_stock_picking
@@ -171,5 +156,9 @@ msgstr "Переміщення"
 #: model_terms:ir.ui.view,arch_db:stock_sms.view_confirm_stock_sms
 msgid ""
 "You are about to confirm this Delivery Order by SMS Text Message.<br/>\n"
-"                This feature can easily be disabled from the Settings of Inventory or by clicking on \"Disable SMS\".<br/>"
+"                This feature can easily be disabled from the Settings of "
+"Inventory or by clicking on \"Disable SMS\".<br/>"
 msgstr ""
+"Ви збираєтесь підтвердити це замовлення доставки SMS-повідомленням.<br/>\n"
+"                Цю функцію можна легко відключити в налаштуваннях складу або "
+"натиснувши \"Вимкнути SMS\".<br/>"

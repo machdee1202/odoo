@@ -1,109 +1,98 @@
-odoo.define('partner.autocomplete.Mixin', function (require) {
-'use strict';
+/* global checkVATNumber */
 
-var concurrency = require('web.concurrency');
-
-var core = require('web.core');
-var Qweb = core.qweb;
-var utils = require('web.utils');
-var _t = core._t;
+import { loadJS } from "@web/core/assets";
+import { _t } from "@web/core/l10n/translation";
+import { KeepLast } from "@web/core/utils/concurrency";
+import { useService } from "@web/core/utils/hooks";
+import { renderToMarkup } from "@web/core/utils/render";
+import { status, useComponent } from "@odoo/owl";
 
 /**
- * This mixin only works with classes having EventDispatcherMixin in 'web.mixins'
+ * Get list of companies via Autocomplete API
+ *
+ * @param {string} value
+ * @returns {Promise}
+ * @private
  */
-var PartnerAutocompleteMixin = {
-    _dropPreviousOdoo: new concurrency.DropPrevious(),
-    _dropPreviousClearbit: new concurrency.DropPrevious(),
-    _timeout : 1000, // Timeout for Clearbit autocomplete in ms
+export function usePartnerAutocomplete() {
+    const keepLastOdoo = new KeepLast();
 
-    //--------------------------------------------------------------------------
-    // Public
-    //--------------------------------------------------------------------------
+    const component = useComponent();
+    const notification = useService("notification");
+    const orm = useService("orm");
 
-    /**
-     * Get list of companies via Autocomplete API
-     *
-     * @param {string} value
-     * @returns {Promise}
-     * @private
-     */
-    _autocomplete: function (value) {
-        var self = this;
+    let lastNoResultsQuery = null;
+
+    function sanitizeVAT(value) {
+        return value ? value.replace(/[^A-Za-z0-9]/g, '') : '';
+    }
+
+    async function isVATNumber(value) {
+        // Lazyload jsvat only if the component is being used.
+        await loadJS("/partner_autocomplete/static/lib/jsvat.js");
+
+        // Protect the method if the component is destroyed.
+        // Same behaviour as : _protectMethod in web/static/src/core/utils/hooks.js
+        if (status(component) === "destroyed") {
+            return new Promise(() => {});
+        }
+
+        // checkVATNumber is defined in library jsvat.
+        // It validates that the input has a valid VAT number format
+        return checkVATNumber(sanitizeVAT(value));
+    }
+
+    function isGSTNumber(value) {
+        // Check if the input is a valid GST number.
+        let isGST = false;
+        if (value && value.length === 15) {
+            const allGSTinRe = [
+                /\d{2}[a-zA-Z]{5}\d{4}[a-zA-Z][1-9A-Za-z][Zz1-9A-Ja-j][0-9a-zA-Z]/, // Normal, Composite, Casual GSTIN
+                /\d{4}[A-Z]{3}\d{5}[UO]N[A-Z0-9]/, // UN/ON Body GSTIN
+                /\d{4}[a-zA-Z]{3}\d{5}NR[0-9a-zA-Z]/, // NRI GSTIN
+                /\d{2}[a-zA-Z]{4}[a-zA-Z0-9]\d{4}[a-zA-Z][1-9A-Za-z][DK][0-9a-zA-Z]/, // TDS GSTIN
+                /\d{2}[a-zA-Z]{5}\d{4}[a-zA-Z][1-9A-Za-z]C[0-9a-zA-Z]/ // TCS GSTIN
+            ];
+
+            isGST = allGSTinRe.some((re) => re.test(value));
+        }
+
+        return isGST;
+    }
+
+    async function autocomplete(value, queryCountryId) {
         value = value.trim();
-        var isVAT = this._isVAT(value);
-        var odooSuggestions = [];
-        var clearbitSuggestions = [];
-        return new Promise(function (resolve, reject) {
-            var odooPromise = self._getOdooSuggestions(value, isVAT).then(function (suggestions){
-                odooSuggestions = suggestions;
-            });
-
-            // Only get Clearbit suggestions if not a VAT number
-            var clearbitPromise = isVAT ? false : self._getClearbitSuggestions(value).then(function (suggestions){
-                clearbitSuggestions = suggestions;
-            });
-
-            var concatResults = function () {
-                // Add Clearbit result with Odoo result (with unique domain)
-                if (clearbitSuggestions && clearbitSuggestions.length) {
-                    var websites = odooSuggestions.map(function (suggestion) {
-                        return suggestion.website;
-                    });
-                    clearbitSuggestions.forEach(function (suggestion) {
-                        if (websites.indexOf(suggestion.domain) < 0) {
-                            websites.push(suggestion.domain);
-                            odooSuggestions.push(suggestion);
-                        }
-                    });
-                }
-
-                odooSuggestions = _.filter(odooSuggestions, function (suggestion) {
-                    return !suggestion.ignored;
-                });
-                _.each(odooSuggestions, function(suggestion){
-                delete suggestion.ignored;
-                });
-                return resolve(odooSuggestions);
-            };
-
-            self._whenAll([odooPromise, clearbitPromise]).then(concatResults, concatResults);
-        });
-
-    },
+        const isVAT = await isVATNumber(value);
+        if (isVAT){
+        	value = sanitizeVAT(value);
+        }
+        const isGST = isGSTNumber(value);
+        return await getSuggestions(value, isVAT || isGST, queryCountryId);
+    }
 
     /**
      * Get enrichment data
      *
      * @param {Object} company
-     * @param {string} company.website
-     * @param {string} company.partner_gid
-     * @param {string} company.vat
      * @returns {Promise}
      * @private
      */
-    _enrichCompany: function (company) {
-        return this._rpc({
-            model: 'res.partner',
-            method: 'enrich_company',
-            args: [company.website, company.partner_gid, company.vat],
-        });
-    },
+    function enrichCompany(company) {
+        if (isGSTNumber(company.query)){
+            return orm.call('res.partner', 'enrich_by_gst', [company.query]);
+        }
+        return orm.call('res.partner', 'enrich_by_duns', [company.duns]);
+    }
 
-    /**
-     * Get the company logo as Base 64 image from url
-     *
-     * @param {string} url
-     * @returns {Promise}
-     * @private
-     */
-    _getCompanyLogo: function (url) {
-        return this._getBase64Image(url).then(function (base64Image) {
-            // base64Image equals "data:" if image not available on given url
-            return base64Image ? base64Image.replace(/^data:image[^;]*;base64,?/, '') : false;
-        }).catch(function () {
-            return false;
-        });
-    },
+    function removeUselessFields(company, fieldsToKeep) {
+        // Delete attribute to avoid "Field_changed" errors (these fields will be populated in the form)
+        for (const field in company){
+            if (!fieldsToKeep.includes(field)){
+                delete company[field]
+            }
+        }
+        return company;
+    };
 
     /**
      * Get enriched data + logo before populating partner form
@@ -111,133 +100,35 @@ var PartnerAutocompleteMixin = {
      * @param {Object} company
      * @returns {Promise}
      */
-    _getCreateData: function (company) {
-        var self = this;
-
-        var removeUselessFields = function (company) {
-            var fields = 'label,description,domain,logo,legal_name,ignored'.split(',');
-            fields.forEach(function (field) {
-                delete company[field];
-            });
-
-            var notEmptyFields = "country_id,state_id".split(',');
-            notEmptyFields.forEach(function (field) {
-                if (!company[field]) delete company[field];
-            });
-        };
-
-        return new Promise(function (resolve) {
+    function getCreateData(company, fieldsToKeep) {
+        return enrichCompany(company).then((companyData) => {
             // Fetch additional company info via Autocomplete Enrichment API
-            var enrichPromise = self._enrichCompany(company);
-
-            // Get logo
-            var logoPromise = company.logo ? self._getCompanyLogo(company.logo) : false;
-            self._whenAll([enrichPromise, logoPromise]).then(function (result) {
-                var company_data = result[0];
-                var logo_data = result[1];
-
-                if (company_data.error && company_data.error_message === 'Insufficient Credit') {
-                    self._notifyNoCredits();
-                    company_data = company;
+            let isEnrichAccessible = false;
+            if (companyData.error) {
+                if (companyData.error_message === 'Insufficient Credit') {
+                    notifyNoCredits();
                 }
-
-                if (company_data.error && company_data.error_message === 'No Account Token') {
-                    self._notifyAccountToken();
-                    company_data = company;
+                else if (companyData.error_message === 'No Account Token') {
+                    notifyAccountToken();
                 }
-
-                if (_.isEmpty(company_data)) {
-                    company_data = company;
+                else {
+                    notification.add(companyData.error_message);
                 }
-
-                // Delete attribute to avoid "Field_changed" errors
-                removeUselessFields(company_data);
-
-                // Assign VAT coming from parent VIES VAT query
-                if (company.vat) {
-                    company_data.vat = company.vat;
-                }
-                resolve({
-                    company: company_data,
-                    logo: logo_data
-                });
-            });
-        });
-    },
-
-    /**
-     * Check connectivity
-     *
-     * @returns {boolean}
-     */
-    _isOnline: function () {
-        return navigator && navigator.onLine;
-    },
-
-    /**
-     * Validate: Not empty and length > 1
-     *
-     * @param {string} search_val
-     * @param {string} onlyVAT : Only valid VAT Number search
-     * @returns {boolean}
-     * @private
-     */
-    _validateSearchTerm: function (search_val, onlyVAT) {
-        if (onlyVAT) return this._isVAT(search_val);
-        else return search_val && search_val.length > 2;
-    },
-
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
-
-    /**
-     * Returns a promise which will be resolved with the base64 data of the
-     * image fetched from the given url.
-     *
-     * @private
-     * @param {string} url : the url where to find the image to fetch
-     * @returns {Promise}
-     */
-    _getBase64Image: function (url) {
-        return new Promise(function (resolve, reject) {
-            var xhr = new XMLHttpRequest();
-            xhr.onload = function () {
-                utils.getDataURLFromFile(xhr.response).then(resolve);
+                companyData = {
+                    ...company,
+                    ...companyData,
+                };
+            }
+            else {
+                isEnrichAccessible = true;
+            }
+            return {
+                company: companyData,
+                logo: companyData.logo || false,
+                isEnrichAccessible,
             };
-            xhr.open('GET', url);
-            xhr.responseType = 'blob';
-            xhr.onerror = reject;
-            xhr.send();
-        });
-    },
-
-    /**
-     * Use Clearbit Autocomplete API to return suggestions
-     *
-     * @param {string} value
-     * @returns {Promise}
-     * @private
-     */
-    _getClearbitSuggestions: function (value) {
-        var url = 'https://autocomplete.clearbit.com/v1/companies/suggest?query=' + value;
-        var def = $.ajax({
-            url: url,
-            dataType: 'json',
-            timeout: this._timeout,
-            success: function (suggestions) {
-                suggestions.map(function (suggestion) {
-                    suggestion.label = suggestion.name;
-                    suggestion.website = suggestion.domain;
-                    suggestion.description = suggestion.website;
-                    return suggestion;
-                });
-                return suggestions;
-            },
-        });
-
-        return this._dropPreviousClearbit.add(def);
-    },
+        })
+    }
 
     /**
      * Use Odoo Autocomplete API to return suggestions
@@ -247,112 +138,80 @@ var PartnerAutocompleteMixin = {
      * @returns {Promise}
      * @private
      */
-    _getOdooSuggestions: function (value, isVAT) {
-        var method = isVAT ? 'read_by_vat' : 'autocomplete';
+    async function getSuggestions(value, isVAT, queryCountryId) {
+        const method = isVAT ? 'autocomplete_by_vat' : 'autocomplete_by_name';
 
-        var def = this._rpc({
-            model: 'res.partner',
-            method: method,
-            args: [value],
-        }, {
-            shadow: true,
-        }).then(function (suggestions) {
-            suggestions.map(function (suggestion) {
-                suggestion.logo = suggestion.logo || '';
-                suggestion.label = suggestion.legal_name || suggestion.name;
-                if (suggestion.vat) suggestion.description = suggestion.vat;
-                else if (suggestion.website) suggestion.description = suggestion.website;
+        // Optimization: if the search query starts with the same content as a previous query for
+        // which there was no results, there won't be any results for the current query.
+        // E.g., if there is no results for query "abc123", there won't be any results for query "abc1234".
+        if (!isVAT && lastNoResultsQuery && value.startsWith(lastNoResultsQuery)) {
+            return [];
+        }
 
-                if (suggestion.country_id && suggestion.country_id.display_name) {
-                    if (suggestion.description) suggestion.description += _.str.sprintf(' (%s)', suggestion.country_id.display_name);
-                    else suggestion.description += suggestion.country_id.display_name;
-                }
+        const prom = orm.silent.call(
+            'res.partner',
+            method,
+            [value, queryCountryId],
+        );
 
-                return suggestion;
-            });
-            return suggestions;
-        });
+        const suggestions = await keepLastOdoo.add(prom);
 
-        return this._dropPreviousOdoo.add(def);
-    },
-    /**
-     * Check if searched value is possibly a VAT : 2 first chars = alpha + min 5 numbers
-     *
-     * @param {string} search_val
-     * @returns {boolean}
-     * @private
-     */
-    _isVAT: function (search_val) {
-        var str = this._sanitizeVAT(search_val);
-        return checkVATNumber(str);
-    },
+        if (!isVAT && suggestions.length === 0) {
+            lastNoResultsQuery = value;
+        }
 
-    /**
-     * Sanitize search value by removing all not alphanumeric
-     *
-     * @param {string} search_value
-     * @returns {string}
-     * @private
-     */
-    _sanitizeVAT: function (search_value) {
-        return search_value ? search_value.replace(/[^A-Za-z0-9]/g, '') : '';
-    },
-
-    /**
-     * Utility to wait for multiple promises
-     * Promise.all will reject all promises whenever a promise is rejected
-     * This utility will continue
-     *
-     * @param {Promise[]} promises
-     * @returns {Promise}
-     * @private
-     */
-    _whenAll: function (promises) {
-        return Promise.all(promises.map(function (p) {
-            return Promise.resolve(p);
+        await Promise.all(suggestions.map(async (suggestion) => {
+            suggestion.query = value;  // Save queried value (name, VAT) for later
+            suggestion.description = '';
+            if (suggestion.city){
+                suggestion.description += suggestion.city;
+            }
+            // Show country name only if searching worldwide
+            if (queryCountryId === 0 && suggestion.country_id && suggestion.country_id.display_name) {
+                suggestion.description +=  ', ' + suggestion.country_id.display_name;
+            }
+            return suggestion;
         }));
-    },
+        return suggestions;
+    }
 
     /**
      * @private
      * @returns {Promise}
      */
-    _notifyNoCredits: function () {
-        var self = this;
-        return this._rpc({
-            model: 'iap.account',
-            method: 'get_credits_url',
-            args: ['partner_autocomplete'],
-        }).then(function (url) {
-            var title = _t('Not enough credits for Partner Autocomplete');
-            var content = Qweb.render('partner_autocomplete.insufficient_credit_notification', {
-                credits_url: url
+    async function notifyNoCredits() {
+        const url = await orm.call(
+            'iap.account',
+            'get_credits_url',
+            ['partner_autocomplete'],
+        );
+        const title = _t('Not enough credits for Partner Autocomplete');
+        const content = renderToMarkup('partner_autocomplete.InsufficientCreditNotification', {
+            credits_url: url
+        });
+        notification.add(content, {
+            title,
+        });
+    }
+
+    async function notifyAccountToken() {
+        const url = await orm.call(
+            'iap.account',
+            'get_config_account_url',
+            []
+        );
+        const title = _t('IAP Account Token missing');
+        if (url) {
+            const content = renderToMarkup('partner_autocomplete.AccountTokenMissingNotification', {
+                account_url: url
             });
-            self.do_notify(title, content, false, 'o_partner_autocomplete_no_credits_notify');
-        });
-    },
-
-    _notifyAccountToken: function () {
-        var self = this;
-        return this._rpc({
-            model: 'iap.account',
-            method: 'get_config_account_url',
-            args: []
-        }).then(function (url) {
-            var title = _t('IAP Account Token missing');
-            if (url){
-                var content = Qweb.render('partner_autocomplete.account_token', {
-                    account_url: url
-                });
-                self.do_notify(title, content, false, 'o_partner_autocomplete_no_credits_notify');
-            }
-            else {
-                self.do_notify(title);
-            }
-        });
-    },
-};
-
-return PartnerAutocompleteMixin;
-
-});
+            notification.add(content, {
+                title,
+            });
+        }
+        else {
+            notification.add(title);
+        }
+    }
+    return { autocomplete, getCreateData, removeUselessFields };
+}

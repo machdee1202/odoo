@@ -1,59 +1,59 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+from odoo import fields
+
 from . import models
+from . import report
 from . import wizard
 
-from odoo import api, SUPERUSER_ID, _, tools
 
-def _configure_journals(cr, registry):
-    """Setting journal and property field (if needed)"""
+def _post_init_hook(env):
+    _configure_journals(env)
+    _create_product_value(env)
+    _configure_stock_account_company_data(env)
 
-    env = api.Environment(cr, SUPERUSER_ID, {})
 
-    # if we already have a coa installed, create journal and set property field
-    company_ids = env['res.company'].search([('chart_template_id', '!=', False)])
-
-    for company_id in company_ids:
-        # Check if property exists for stock account journal exists
-        properties = env['ir.property'].search([
-            ('name', '=', 'property_stock_journal'),
-            ('company_id', '=', company_id.id)])
-
-        # If not, check if you can find a journal that is already there with the same name, otherwise create one
-        if not properties:
-            journal_id = env['account.journal'].search([
-                ('name', '=', _('Inventory Valuation')),
-                ('company_id', '=', company_id.id),
-                ('type', '=', 'general')], limit=1).id
-            if not journal_id:
-                journal_id = env['account.journal'].create({
-                    'name': _('Inventory Valuation'),
-                    'type': 'general',
-                    'code': 'STJ',
-                    'company_id': company_id.id,
-                    'show_on_dashboard': False
-                }).id
-            env['ir.property'].set_default(
-                'property_stock_journal',
-                'product.category',
-                journal_id,
-                company_id,
-            )
-
-        # Property Stock Accounts
-        todo_list = [
-            'property_stock_account_input_categ_id',
-            'property_stock_account_output_categ_id',
-            'property_stock_valuation_account_id',
+def _create_product_value(env):
+    product_vals_list = []
+    products = env['product.product'].search([('type', '=', 'consu')])
+    for company in env['res.company'].search([]):
+        products = products.with_company(company)
+        product_vals_list += [
+            {
+                'product_id': product.id,
+                'value': product.standard_price,
+                'date': fields.Date.today(),
+                'company_id': company.id,
+                'description': 'Initial cost',
+            }
+            for product in products if not product.company_id or product.company_id == company
         ]
+    env['product.value'].create(product_vals_list)
 
-        for name in todo_list:
-            account = getattr(company_id, name)
-            if account:
-                env['ir.property'].set_default(
-                    name,
-                    'product.category',
-                    account,
-                    company_id,
-                )
+
+def _configure_journals(env):
+    for company in env['res.company'].search([('chart_template', '!=', False)], order="parent_path"):
+        journal = env['account.journal'].search([
+            ('code', '=', 'STJ'),
+            ('company_id', '=', company.id),
+            ('type', '=', 'general')], limit=1)
+        if journal:
+            env['ir.model.data']._update_xmlids([{
+                'xml_id': f"account.{company.id}_inventory_valuation",
+                'record': journal,
+                'noupdate': True,
+            }])
+
+
+def _configure_stock_account_company_data(env):
+    env['account.chart.template']._load_pre_defined_data({
+        'res.company': {
+            'account_stock_valuation_id',
+            'account_production_wip_account_id',
+            'account_production_wip_overhead_account_id',
+        },
+        'account.account': {
+            'account_stock_expense_id',
+            'account_stock_variation_id',
+        },
+    })

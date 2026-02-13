@@ -1,28 +1,26 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 {
     'name': "India Sales and Warehouse Management",
 
-    'summary': """
-        Define default sales journal on the warehouse""",
+    'summary': "Get warehouse address if the invoice is created from Sale Order",
 
     'description': """
-        Define default sales journal on the warehouse,
-        help you to choose correct sales journal on the sales order when
-        you change the warehouse.
-        useful when you setup the multiple GSTIN units.
+Get the warehouse address if the invoice is created from the Sale Order
+In Indian EDI we send shipping address details if available
+
+So this module is to get the warehouse address if the invoice is created from Sale Order
     """,
 
-    'author': "Odoo",
-    'website': "https://www.odoo.com",
-    'category': 'Accounting/Accounting',
-    'version': '0.1',
+    'category': 'Accounting/Localizations/Sale',
 
-    'depends': ['l10n_in_sale', 'l10n_in_stock'],
-
-    'data': [
-        'views/stock_warehouse_views.xml',
+    'depends': [
+        'l10n_in_sale',
+        'l10n_in_stock',
+        'sale_stock'
     ],
-    'auto_install': True
+
+    'auto_install': True,
+    'author': 'Odoo S.A.',
+    'license': 'LGPL-3',
 }

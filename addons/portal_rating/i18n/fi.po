@@ -1,154 +1,240 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# * website_rating
-# 
+# * portal_rating
+#
 # Translators:
-# Martin Trigaux, 2018
-# Miku Laitinen <miku.laitinen@gmail.com>, 2018
-# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2018
-# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2018
+# Miku Laitinen <miku.laitinen@gmail.com>, 2022
+# Kari Lindgren <kari.lindgren@emsystems.fi>, 2022
+# Veikko Väätäjä <veikko.vaataja@gmail.com>, 2022
+# Martin Trigaux, 2022
+# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2022
+# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2022
+# Antti Oksman <antti.oksman@web-veistamo.fi>, 2022
+# Ossi Mantylahti <ossi.mantylahti@obs-solutions.fi>, 2023
+# "Tiffany Chang (tic)" <tic@odoo.com>, 2025.
+# Saara Hakanen <sahak@odoo.com>, 2025.
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~11.5\n"
+"Project-Id-Version: Odoo Server 16.0beta\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-08-24 09:05+0000\n"
-"PO-Revision-Date: 2018-08-24 09:05+0000\n"
-"Last-Translator: Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2018\n"
-"Language-Team: Finnish (https://www.transifex.com/odoo/teams/41243/fi/)\n"
+"POT-Creation-Date: 2025-10-08 18:38+0000\n"
+"PO-Revision-Date: 2025-12-04 14:03+0000\n"
+"Last-Translator: Saara Hakanen <sahak@odoo.com>\n"
+"Language-Team: Finnish <https://translate.odoo.com/projects/odoo-19/"
+"portal_rating/fi/>\n"
+"Language: fi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
-"Language: fi\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.14.3\n"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:24
-#, python-format
+#. module: portal_rating
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_rating_view_form
+msgid "<span> on </span>"
+msgstr "<span> päivämääränä </span>"
+
+#. module: portal_rating
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_rating_view_form
+msgid "<span>by </span>"
+msgstr "<span>kirjoittanut </span>"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_stars_static_popup_composer
+msgid "Add Review"
+msgstr "Lisää arvostelu"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "Average"
 msgstr "Keskinkertainen"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:34
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_rating_composer.xml:0
+msgid "Close"
+msgstr "Sulje"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_rating_view_form
+msgid "Comment"
+msgstr "Kommentti"
+
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__publisher_id
+msgid "Commented by"
+msgstr "Kommentoi"
+
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__publisher_datetime
+msgid "Commented on"
+msgstr "Kommentoitu"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
+msgid "Delete"
+msgstr "Poista"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "Details"
 msgstr "Tiedot"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:69
-#, python-format
-msgid "Five stars on five"
-msgstr ""
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_ir_http__display_name
+#: model:ir.model.fields,field_description:portal_rating.field_mail_message__display_name
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__display_name
+msgid "Display Name"
+msgstr "Näyttönimi"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:68
-#, python-format
-msgid "Four stars on five"
-msgstr ""
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
+msgid "Edit"
+msgstr "Muokkaa"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:13
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_stars_static_popup_composer
+msgid "Edit Review"
+msgstr "Muokkaa arvostelua"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/composer_patch.xml:0
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "Empty star"
+msgstr "Tyhjä tähti"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/composer_patch.xml:0
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "Full star"
+msgstr "Täysi tähti"
+
+#. module: portal_rating
+#: model:ir.model,name:portal_rating.model_ir_http
+msgid "HTTP Routing"
+msgstr "HTTP-reititys"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "Half a star"
-msgstr ""
+msgstr "Puolikas tähti"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/website_mail.js:43
-#, python-format
-msgid "I don't like it"
-msgstr ""
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_ir_http__id
+#: model:ir.model.fields,field_description:portal_rating.field_mail_message__id
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__id
+msgid "ID"
+msgstr "Tunnus"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/website_mail.js:42
-#, python-format
-msgid "I hate it"
-msgstr ""
+#. module: portal_rating
+#. odoo-python
+#: code:addons/portal_rating/controllers/portal_rating.py:0
+msgid "Invalid rating"
+msgstr "Virheellinen luokitus"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/website_mail.js:45
-#, python-format
-msgid "I like it"
-msgstr ""
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/website_mail.js:46
-#, python-format
-msgid "I love it"
-msgstr ""
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/js/website_mail.js:44
-#, python-format
-msgid "It's okay"
-msgstr ""
-
-#. module: website_rating
-#: model:ir.model,name:website_rating.model_mail_message
+#. module: portal_rating
+#: model:ir.model,name:portal_rating.model_mail_message
 msgid "Message"
 msgstr "Viesti"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:10
-#, python-format
-msgid "One star"
-msgstr ""
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_rating_composer.xml:0
+msgid "Modify your review"
+msgstr "Muokkaa arvostelua"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:65
-#, python-format
-msgid "One star on five"
-msgstr ""
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+msgid "Post review"
+msgstr "Julkaisun arvostelu"
 
-#. module: website_rating
-#: model:ir.model.fields,field_description:website_rating.field_rating_rating__website_published
-msgid "Published"
-msgstr "Julkaistu"
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "Progress bar"
+msgstr "Edistymispalkki"
 
-#. module: website_rating
-#: model:ir.model,name:website_rating.model_rating_rating
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/chatter/frontend/message_patch.xml:0
+msgid "Published on"
+msgstr "Julkastu"
+
+#. module: portal_rating
+#: model:ir.model.fields,field_description:portal_rating.field_rating_rating__publisher_comment
+msgid "Publisher comment"
+msgstr "Julkasijan kommentti"
+
+#. module: portal_rating
+#: model:ir.model,name:portal_rating.model_rating_rating
 msgid "Rating"
 msgstr "Arvostelu"
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:52
-#, python-format
-msgid "Remove selection"
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "Remove Selection"
+msgstr "Poista valinta"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+#: model_terms:ir.ui.view,arch_db:portal_rating.rating_stars_static_popup_composer
+msgid "Review"
+msgstr "Tarkasta"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_composer.js:0
+msgid ""
+"The rating is required. Please make sure to select one before sending your "
+"review."
+msgstr ""
+"Arvostelu vaaditaan. Varmista, että valitset yhden ennen arvostelun "
+"lähettämistä."
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/interactions/portal_rating_composer.js:0
+msgid "Update review"
+msgstr "Päivitä arvostelu"
+
+#. module: portal_rating
+#. odoo-python
+#: code:addons/portal_rating/models/rating_rating.py:0
+msgid "Updating rating comment require write access on related record"
+msgstr ""
+"Luokituskommentin päivittäminen edellyttää kirjoitusoikeutta asiaan "
+"liittyvään tietueeseen"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_rating_composer.xml:0
+msgid "Write a review"
+msgstr "Kirjoita arvostelu"
+
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
+msgid "comments"
 msgstr ""
 
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:67
-#, python-format
-msgid "Three stars on five"
-msgstr ""
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:66
-#, python-format
-msgid "Two stars on five"
-msgstr ""
-
-#. module: website_rating
-#: model:ir.model.fields,help:website_rating.field_rating_rating__website_published
-msgid "Visible on the website as a comment"
-msgstr "Näkyvillä verkkosivustolla kommenttina"
-
-#. module: website_rating
-#. openerp-web
-#: code:addons/website_rating/static/src/xml/website_mail.xml:40
-#, python-format
+#. module: portal_rating
+#. odoo-javascript
+#: code:addons/portal_rating/static/src/xml/portal_tools.xml:0
 msgid "stars"
-msgstr ""
+msgstr "tähdet"

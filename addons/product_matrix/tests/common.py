@@ -3,7 +3,6 @@
 from odoo.tests import tagged, common
 
 
-@tagged('post_install', '-at_install')
 class TestMatrixCommon(common.HttpCase):
 
     def setUp(self):
@@ -38,9 +37,13 @@ class TestMatrixCommon(common.HttpCase):
             'name': "Matrix",
             'type': "consu",
             'uom_id': self.ref("uom.product_uom_unit"),
-            'uom_po_id': self.ref("uom.product_uom_unit"),
             'attribute_line_ids': [(0, 0, {
                 'attribute_id': attribute.id,
                 'value_ids': [(6, 0, attribute.value_ids.ids)]
             }) for attribute in product_attributes],
         })
+        def get_ptav(pav_name):
+            return self.env['product.template.attribute.value']\
+                .search([('product_attribute_value_id.name', '=', pav_name)])
+        get_ptav('PAV12').price_extra = 50
+        get_ptav('PAV31').price_extra = -25

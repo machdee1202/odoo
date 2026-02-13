@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 {
     'name': 'Track Speakers SMS Marketing',
-    'category': 'Hidden',
-    'version': '1.0',
+    'category': 'Marketing/Email Marketing',
     'description':
         """
 SMS Marketing on event track speakers
@@ -19,7 +17,7 @@ speakers..
         'sms',
         'website_event_track'
     ],
-    'data': [
-    ],
     'auto_install': True,
+    'author': 'Odoo S.A.',
+    'license': 'LGPL-3',
 }

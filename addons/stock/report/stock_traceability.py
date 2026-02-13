@@ -2,7 +2,8 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, models, _
-from odoo.tools import config
+from odoo.tools import format_datetime
+from markupsafe import Markup
 
 
 rec = 0
@@ -17,7 +18,7 @@ def autoIncrement():
     return rec
 
 
-class MrpStockReport(models.TransientModel):
+class StockTraceabilityReport(models.TransientModel):
     _name = 'stock.traceability.report'
     _description = 'Traceability Report'
 
@@ -33,7 +34,7 @@ class MrpStockReport(models.TransientModel):
                     lambda m: m.lot_id == move_line.lot_id and m.state == 'done'
                 ) - lines_seen
             # if MTS
-            elif move_line.location_id.usage == 'internal':
+            elif move_line.location_id.usage in ('internal', 'transit'):
                 lines = self.env['stock.move.line'].search([
                     ('product_id', '=', move_line.product_id.id),
                     ('lot_id', '=', move_line.lot_id.id),
@@ -50,14 +51,14 @@ class MrpStockReport(models.TransientModel):
         return lines_seen - move_lines
 
     @api.model
-    def get_lines(self, line_id=None, **kw):
+    def get_lines(self, line_id=False, **kw):
         context = dict(self.env.context)
         model = kw and kw['model_name'] or context.get('model')
         rec_id = kw and kw['model_id'] or context.get('active_id')
         level = kw and kw['level'] or 1
         lines = self.env['stock.move.line']
         move_line = self.env['stock.move.line']
-        if rec_id and model == 'stock.production.lot':
+        if rec_id and model == 'stock.lot':
             lines = move_line.search([
                 ('lot_id', '=', context.get('lot_name') or rec_id),
                 ('state', '=', 'done'),
@@ -70,7 +71,7 @@ class MrpStockReport(models.TransientModel):
         elif rec_id and model in ('stock.picking', 'mrp.production'):
             record = self.env[model].browse(rec_id)
             if model == 'stock.picking':
-                lines = record.move_lines.mapped('move_line_ids').filtered(lambda m: m.lot_id and m.state == 'done')
+                lines = record.move_ids.move_line_ids.filtered(lambda m: m.lot_id and m.state == 'done')
             else:
                 lines = record.move_finished_ids.mapped('move_line_ids').filtered(lambda m: m.state == 'done')
         move_line_vals = self._lines(line_id, model_id=rec_id, model=model, level=level, move_lines=lines)
@@ -88,21 +89,21 @@ class MrpStockReport(models.TransientModel):
             res_model = 'stock.picking'
             res_id = picking_id.id
             ref = picking_id.name
-        elif move_line.move_id.inventory_id:
-            res_model = 'stock.inventory'
-            res_id = move_line.move_id.inventory_id.id
-            ref = 'Inv. Adj.: ' + move_line.move_id.inventory_id.name
-        elif move_line.move_id.scrapped and move_line.move_id.scrap_ids:
-            res_model = 'stock.scrap'
-            res_id = move_line.move_id.scrap_ids[0].id
-            ref = move_line.move_id.scrap_ids[0].name
+        elif move_line.move_id.is_inventory:
+            res_model = 'stock.move'
+            res_id = move_line.move_id.id
+            ref = 'Inventory Adjustment'
+        elif move_line.move_id.is_scrap:
+            res_model = 'stock.move'
+            res_id = move_line.move_id.id
+            ref = move_line.move_id.origin
         return res_model, res_id, ref
 
     @api.model
     def _quantity_to_str(self, from_uom, to_uom, qty):
-        """ workaround to apply the float rounding logic of t-esc on data prepared server side """
+        """ workaround to apply the float rounding logic of t-out on data prepared server side """
         qty = from_uom._compute_quantity(qty, to_uom, rounding_method='HALF-UP')
-        return self.env['ir.qweb.field.float'].value_to_html(qty, {'decimal_precision': 'Product Unit of Measure'})
+        return self.env['ir.qweb.field.float'].value_to_html(qty, {'decimal_precision': 'Product Unit'})
 
     def _get_usage(self, move_line):
         usage = ''
@@ -114,9 +115,25 @@ class MrpStockReport(models.TransientModel):
             usage = 'out'
         return usage
 
+    def _get_partner_names(self, move_line):
+        """ Return partner name instead of source or destination location based on
+            whether the product is incoming or outgoing.
+        """
+        partner_name = move_line.picking_partner_id.name
+        source_name = move_line.location_id.display_name
+        destination_name = move_line.location_dest_id.display_name
+
+        if (picking_code := move_line.picking_id.picking_type_code) == 'incoming':
+            return partner_name, destination_name
+        elif picking_code == 'outgoing':
+            return source_name, partner_name
+        else:
+            return source_name, destination_name
+
     def _make_dict_move(self, level, parent_id, move_line, unfoldable=False):
         res_model, res_id, ref = self._get_reference(move_line)
         dummy, is_used = self._get_linked_move_lines(move_line)
+        location_source, location_destination = self._get_partner_names(move_line)
         data = [{
             'level': level,
             'unfoldable': unfoldable,
@@ -127,11 +144,13 @@ class MrpStockReport(models.TransientModel):
             'model_id': move_line.id,
             'model': 'stock.move.line',
             'product_id': move_line.product_id.display_name,
-            'product_qty_uom': "%s %s" % (self._quantity_to_str(move_line.product_uom_id, move_line.product_id.uom_id, move_line.qty_done), move_line.product_id.uom_id.name),
+            'product_qty_uom': "%s %s" % (self._quantity_to_str(move_line.uom_id, move_line.product_id.uom_id, move_line.quantity), move_line.product_id.uom_id.name),
             'lot_name': move_line.lot_id.name,
             'lot_id': move_line.lot_id.id,
-            'location_source': move_line.location_id.name,
-            'location_destination': move_line.location_dest_id.name,
+            'location_source': location_source,
+            'location_destination': location_destination,
+            'partner_id': move_line.picking_partner_id.id,
+            'picking_type_code': move_line.picking_id.picking_type_code,
             'reference_id': ref,
             'res_id': res_id,
             'res_model': res_model}]
@@ -151,11 +170,15 @@ class MrpStockReport(models.TransientModel):
                 'lot_name': data.get('lot_name', False),
                 'lot_id': data.get('lot_id', False),
                 'reference': data.get('reference_id', False),
+                'location_source': data.get('location_source', False),
+                'location_destination': data.get('location_destination', False),
+                'partner_id': data.get('partner_id', False),
+                'picking_type_code': data.get('picking_type_code', False),
                 'res_id': data.get('res_id', False),
                 'res_model': data.get('res_model', False),
                 'columns': [data.get('reference_id', False),
                             data.get('product_id', False),
-                            data.get('date', False),
+                            format_datetime(self.env, data.get('date', False), tz=False, dt_format=False),
                             data.get('lot_name', False),
                             data.get('location_source', False),
                             data.get('location_destination', False),
@@ -170,7 +193,7 @@ class MrpStockReport(models.TransientModel):
         return False, False
 
     @api.model
-    def _lines(self, line_id=None, model_id=False, model=False, level=0, move_lines=[], **kw):
+    def _lines(self, line_id=False, model_id=False, model=False, level=0, move_lines=None, **kw):
         final_vals = []
         lines = move_lines or []
         if model and line_id:
@@ -183,7 +206,7 @@ class MrpStockReport(models.TransientModel):
                 lines = self._get_move_lines(move_line, line_id=line_id)
         for line in lines:
             unfoldable = False
-            if line.consume_line_ids or ( line.lot_id and self._get_move_lines(line) and model != "stock.production.lot"):
+            if line.consume_line_ids or (model != "stock.lot" and line.lot_id and self._get_move_lines(line)):
                 unfoldable = True
             final_vals += self._make_dict_move(level, parent_id=line_id, move_line=line, unfoldable=unfoldable)
         return final_vals
@@ -199,44 +222,41 @@ class MrpStockReport(models.TransientModel):
             lines.append(self._final_vals_to_lines(final_vals, line['level'])[0])
         return lines
 
-    def get_pdf(self, line_data=[]):
+    def get_pdf(self, line_data=None):
+        line_data = [] if line_data is None else line_data
         lines = self.with_context(print_mode=True).get_pdf_lines(line_data)
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        base_url = self.env['ir.config_parameter'].sudo().get_str('web.base.url')
         rcontext = {
             'mode': 'print',
             'base_url': base_url,
         }
 
         context = dict(self.env.context)
-        if not config['test_enable']:
-            context['commit_assetsbundle'] = True
+        if context.get('active_id') and context.get('active_model'):
+            rcontext['reference'] = self.env[context.get('active_model')].browse(int(context.get('active_id'))).display_name
 
-        body = self.env['ir.ui.view'].with_context(context).render_template(
+        body = self.env['ir.ui.view'].with_context(context)._render_template(
             "stock.report_stock_inventory_print",
             values=dict(rcontext, lines=lines, report=self, context=self),
         )
 
-        header = self.env['ir.actions.report'].render_template("web.internal_layout", values=rcontext)
-        header = self.env['ir.actions.report'].render_template("web.minimal_layout", values=dict(rcontext, subst=True, body=header))
+        header = self.env['ir.actions.report']._render_template("web.internal_layout", values=rcontext)
+        header = self.env['ir.actions.report']._render_template("web.minimal_layout", values=dict(rcontext, subst=True, body=Markup(header.decode())))
 
         return self.env['ir.actions.report']._run_wkhtmltopdf(
             [body],
-            header=header,
+            header=header.decode(),
             landscape=True,
-            specific_paperformat_args={'data-report-margin-top': 10, 'data-report-header-spacing': 10}
+            specific_paperformat_args={'data-report-margin-top': 30, 'data-report-header-spacing': 25}
         )
 
-    def _get_html(self):
-        result = {}
-        rcontext = {}
+    def _get_main_lines(self):
         context = dict(self.env.context)
-        rcontext['lines'] = self.with_context(context).get_lines()
-        result['html'] = self.env.ref('stock.report_stock_inventory').render(rcontext)
-        return result
+        return self.with_context(context).get_lines()
 
     @api.model
-    def get_html(self, given_context=None):
+    def get_main_lines(self, given_context=None):
         res = self.search([('create_uid', '=', self.env.uid)], limit=1)
         if not res:
-            return self.create({}).with_context(given_context)._get_html()
-        return res.with_context(given_context)._get_html()
+            return self.create({}).with_context(given_context)._get_main_lines()
+        return res.with_context(given_context)._get_main_lines()

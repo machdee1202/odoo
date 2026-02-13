@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 {
@@ -18,9 +17,23 @@ associated to every resource. It also manages the leaves of every resource.
         'data/resource_data.xml',
         'security/ir.model.access.csv',
         'security/resource_security.xml',
-        'views/resource_views.xml',
-        'views/resource.xml',
+        'views/resource_resource_views.xml',
+        'views/resource_calendar_leaves_views.xml',
+        'views/resource_calendar_attendance_views.xml',
+        'views/resource_calendar_views.xml',
+        'views/menuitems.xml',
     ],
     'demo': [
+        'data/resource_demo.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'resource/static/src/**/*',
+        ],
+        'web.assets_unit_tests': [
+            'resource/static/tests/**/*',
+        ],
+    },
+    'author': 'Odoo S.A.',
+    'license': 'LGPL-3',
 }

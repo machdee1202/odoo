@@ -7,12 +7,16 @@
             <search string="Fleet Costs Analysis">
                 <field name="name" filter_domain="[('name', 'ilike', self)]"/>
                 <field name="driver_id" filter_domain="[('driver_id', 'ilike', self)]"/>
-                <field name="date_start" />
+                <field name="date_start"/>
                 <filter string="Service" name="service" domain="[('cost_type', '=', 'service')]"/>
                 <filter string="Contract" name="contract" domain="[('cost_type', '=', 'contract')]"/>
-                <group expand="1" string="Group By">
+                <separator/>
+                <filter name="filter_date_start" date="date_start" default_period="year"/>
+                <group>
                     <filter string="Vehicle" name="vehicle" context="{'group_by':'vehicle_id'}"/>
                     <filter string="Driver" name="driver" context="{'group_by':'driver_id'}"/>
+                    <filter string="Cost Type" name="cost_type" context="{'group_by':'cost_type'}"/>
+                    <filter string="Service Type" name="service_type" context="{'group_by':'service_type'}"/>
                 </group>
             </search>
         </field>
@@ -22,7 +26,7 @@
         <field name="name">fleet.vehicle.cost.view.pivot</field>
         <field name="model">fleet.vehicle.cost.report</field>
         <field name="arch" type="xml">
-            <pivot>
+            <pivot sample="1">
                 <field name="date_start" type="col" interval="year" />
                 <field name="cost_type" type="col" />
                 <field name="vehicle_id" type="row" />
@@ -35,34 +39,71 @@
         <field name="name">fleet.vehicle.cost.view.graph</field>
         <field name="model">fleet.vehicle.cost.report</field>
         <field name="arch" type="xml">
-            <graph string="Fleet Costs Analysis" type="bar">
-                <field name="date_start" type="row" interval="month"/>
-                <field name="cost_type" type="row"/>
+            <graph string="Fleet Costs Analysis" sample="1">
+                <field name="date_start" interval="month"/>
+                <field name="cost_type"/>
                 <field name="cost" type="measure"/>
             </graph>
         </field>
     </record>
 
-
- <record id="fleet_costs_reporting_action" model="ir.actions.act_window">
-      <field name="name">Costs Analysis</field>
-      <field name="res_model">fleet.vehicle.cost.report</field>
-      <field name="view_mode">graph,pivot</field>
-      <field name="view_id"></field>  
-      <field name="context">{ 'time_ranges': {'field':'date_start', 'range':'last_365_days'} }</field>
-      <field name="search_view_id" ref="fleet.fleet_costs_report_view_search"/>
-      <field name="help" type="html">
-        <p class="o_view_nocontent_empty_folder">
-          No data for analysis
-        </p><p>
-          Odoo helps you managing the costs for your different vehicles
-          Costs are generally created from services and contract and appears here.
-        </p><p>
-          Thanks to the different filters, Odoo can only print the effective
-          costs, sort them by type and by vehicle.
-        </p>
-      </field>
+    <record id="fleet_vechicle_costs_report_view_tree" model="ir.ui.view">
+        <field name="name">fleet.vehicle.cost.report.view.list</field>
+        <field name="model">fleet.vehicle.cost.report</field>
+        <field name="arch" type="xml">
+            <list string="Fleet Costs Analysis" create="0">
+                <field name="name"/>
+                <field name="driver_id" optional="show"/>
+                <field name="fuel_type" optional="hide"/>
+                <field name="date_start" optional="show"/>
+                <field name="cost" optional="show" sum="Sum of Cost"/>
+                <field name="cost_type" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
     </record>
+
+    <record id="fleet_vechicle_costs_report_view_form" model="ir.ui.view">
+        <field name="name">fleet.vehicle.cost.report.form</field>
+        <field name="model">fleet.vehicle.cost.report</field>
+        <field name="arch" type="xml">
+            <form string="Fleet Costs Analysis" create="0" edit="0">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="vehicle_id"/>
+                            <field name="driver_id"/>
+                            <field name="fuel_type"/>
+                            <field name="company_id" groups="base.group_multi_company" placeholder="Visible to all"/>
+                        </group>
+                        <group>
+                            <field name="date_start"/>
+                            <field name="cost"/>
+                            <field name="cost_type"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="fleet_costs_reporting_action" model="ir.actions.act_window">
+        <field name="name">Costs Analysis</field>
+        <field name="res_model">fleet.vehicle.cost.report</field>
+        <field name="view_mode">graph,pivot</field>
+        <field name="view_id"></field>
+        <field name="context">{'search_default_filter_date_start': 1}</field>
+        <field name="search_view_id" ref="fleet.fleet_costs_report_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_empty_folder">
+              No data for analysis
+            </p>
+            <p>
+              Manage efficiently your different effective vehicles Costs with Odoo.
+            </p>
+        </field>
+    </record>
+
     <menuitem name="Reporting" parent="menu_root" id="menu_fleet_reporting" sequence="99" groups="fleet_group_manager"/>
     <menuitem id="menu_fleet_reporting_costs"
               name="Costs"

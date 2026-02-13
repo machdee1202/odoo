@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-try:
-    from itertools import zip_longest
-except ImportError:
-    from itertools import izip_longest as zip_longest
-
+from hashlib import sha256
+import json
 import unittest
+from unittest.mock import patch
+from itertools import zip_longest
 from lxml import etree as ET, html
 from lxml.html import builder as h
 
+from odoo.exceptions import MissingError
+from odoo.modules.module import _DEFAULT_MANIFEST, Manifest
 from odoo.tests import common, HttpCase, tagged
 
 
@@ -17,7 +17,197 @@ def attrs(**kwargs):
     return {'data-oe-%s' % key: str(value) for key, value in kwargs.items()}
 
 
-class TestViewSaving(common.TransactionCase):
+class TestViewSavingCommon(common.TransactionCase):
+    def _create_imd(self, view):
+        xml_id = view.key.split('.')
+        return self.env['ir.model.data'].create({
+            'module': xml_id[0],
+            'name': xml_id[1],
+            'model': view._name,
+            'res_id': view.id,
+        })
+
+
+@tagged('-at_install', 'post_install')
+class TestCustomizeView(common.HttpCase):
+    def url_open_authenticate(self, url, data, login='admin', password='admin'):
+        self.authenticate(login, password)
+        response = self.url_open(url, json={'params': {**data, 'is_view_data': True}}, headers={"Content-Type": "application/json"})
+        data = json.loads(response.text)
+        self.logout()
+        return data.get("result")
+
+    def test_disabled_optional_template_t_call(self):
+        website = self.env['website'].search([], limit=1)
+        View = self.env['ir.ui.view']
+        default = View.create({
+            'name': 'test_view',
+            'type': 'qweb',
+            'key': 'website.test_view',
+            'arch_db': '<span>Default</span>'
+        })
+        custo = View.create({
+            'name': 'test_view',
+            'type': 'qweb',
+            'key': 'website.test_view',
+            'website_id': website.id,
+            'arch_db': '<span>Customized</span>'
+        })
+        template = View.create({
+            'name': 'test_root',
+            'type': 'qweb',
+            'key': 'website.test_root',
+            'arch_db': '''<div><t t-if="is_view_active('website.test_view')"> is active </t><t t-call="website.test_view"/></div>'''
+        })
+        page = self.env['website.page'].create({
+            'view_id': template.id,
+            'url': '/test_root',
+            'is_published': True,
+        })
+
+        website._force()
+
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_root', 'website.test_view']})
+        self.assertEqual(set(actives), {'website.test_root', 'website.test_view'})
+        self.assertEqual([custo.active, default.active], [True, True])
+        self.assertEqual(self.url_open(page.url).text, '<div> is active <span>Customized</span></div>')
+
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': [], 'disable': ['website.test_view']})
+
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_root', 'website.test_view']})
+        self.assertEqual(set(actives), {'website.test_root'})
+        self.assertEqual([custo.active, default.active], [False, True])
+        self.assertEqual(self.url_open(page.url).text, '<div><span>Default</span></div>')
+
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': ['website.test_view'], 'disable': []})
+
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_root', 'website.test_view']})
+        self.assertEqual(set(actives), {'website.test_root', 'website.test_view'})
+        self.assertEqual([custo.active, default.active], [True, True])
+        self.assertEqual(self.url_open(page.url).text, '<div> is active <span>Customized</span></div>')
+
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': [], 'disable': ['website.test_view']})
+        custo.unlink()
+        self.assertEqual(self.url_open(page.url).text, '<div> is active <span>Default</span></div>')
+
+        # theme_customize_data will clone the default view to save the configuration
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': [], 'disable': ['website.test_view']})
+        new_custo = View.with_context(active_test=False).search([('key', '=', 'website.test_view'), ('website_id', '=', website.id)])
+        self.assertEqual(bool(new_custo), True)
+        self.assertNotEqual(custo.id, new_custo.id)
+        self.assertEqual([new_custo.active, default.active], [False, True])
+        self.assertEqual(self.url_open(page.url).text, '<div><span>Default</span></div>')
+
+    def test_disabled_optional_template_xpath(self):
+        website = self.env.ref('website.default_website')
+        View = self.env['ir.ui.view']
+        template = View.create({
+            'name': 'test_root',
+            'type': 'qweb',
+            'key': 'website.test_root',
+            'arch_db': '''<div><t t-if="is_view_active('website.test_view')"> is active </t></div>'''
+        })
+
+        default = View.create({
+            'name': 'test_view',
+            'mode': 'extension',
+            'inherit_id': template.id,
+            'arch_db': '<div position="inside"><span>Default</span></div>',
+            'key': 'website.test_view',
+        })
+        custo = View.create({
+            'name': 'test_view',
+            'mode': 'extension',
+            'inherit_id': template.id,
+            'arch_db': '<div position="inside"><span>Customized</span></div>',
+            'key': 'website.test_view',
+            'website_id': website.id,
+        })
+        page = self.env['website.page'].create({
+            'view_id': template.id,
+            'url': '/test_root',
+            'is_published': True,
+        })
+
+        website._force()
+
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_root', 'website.test_view']})
+        self.assertEqual(set(actives), {'website.test_root', 'website.test_view'})
+        self.assertEqual([custo.active, default.active], [True, True])
+        self.assertEqual(self.url_open(page.url).text, '<div> is active <span>Customized</span></div>')
+
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': [], 'disable': ['website.test_view']})
+
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_root', 'website.test_view']})
+        self.assertEqual(set(actives), {'website.test_root'})
+        self.assertEqual([custo.active, default.active], [False, True])
+        self.assertEqual(self.url_open(page.url).text, '<div></div>')
+
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': ['website.test_view'], 'disable': []})
+
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_root', 'website.test_view']})
+        self.assertEqual(set(actives), {'website.test_root', 'website.test_view'})
+        self.assertEqual([custo.active, default.active], [True, True])
+        self.assertEqual(self.url_open(page.url).text, '<div> is active <span>Customized</span></div>')
+
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': [], 'disable': ['website.test_view']})
+        custo.unlink()
+        self.assertEqual(self.url_open(page.url).text, '<div> is active <span>Default</span></div>')
+
+        # theme_customize_data will clone the default view to save the configuration
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': [], 'disable': ['website.test_view']})
+        new_custo = View.with_context(active_test=False).search([('key', '=', 'website.test_view'), ('website_id', '=', website.id)])
+        self.assertEqual(bool(new_custo), True)
+        self.assertNotEqual(custo.id, new_custo.id)
+        self.assertEqual([new_custo.active, default.active], [False, True])
+        self.assertEqual(self.url_open(page.url).text, '<div></div>')
+
+    def test_enabling_optional_template_with_editor(self):
+        """ Ensure that a non-admin editor can enable a view """
+        website = self.env['website'].search([], limit=1)
+        auth = {'login': 'test', 'password': 'testtest'}
+        user = self.env['res.users'].create({'name': 'test', **auth})
+        user.group_ids += self.env.ref('website.group_website_designer')
+        View = self.env['ir.ui.view']
+        default = View.create({
+            'name': 'test_view',
+            'type': 'qweb',
+            'key': 'website.test_view',
+            'arch_db': '<span>Default</span>'
+        })
+        custo = View.create({
+            'active': False,
+            'name': 'test_view',
+            'type': 'qweb',
+            'key': 'website.test_view',
+            'website_id': website.id,
+            'arch_db': '<span>Customized</span>'
+        })
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_view']}, **auth)
+        self.assertEqual(set(actives), set())
+        self.assertEqual([custo.active, default.active], [False, True])
+
+        self.url_open_authenticate('/website/theme_customize_data', {'enable': ['website.test_view'], 'disable': []}, **auth)
+        actives = self.url_open_authenticate('/website/theme_customize_data_get', {'keys': ['website.test_view']}, **auth)
+        self.assertEqual(set(actives), {'website.test_view'})
+        self.assertEqual([custo.active, default.active], [True, True])
+
+    def test_find_available_name(self):
+        View = self.env['ir.ui.view']
+        used_names = ['Unrelated name']
+        initial_name = "Test name"
+        name = View._find_available_name(initial_name, used_names)
+        self.assertEqual(initial_name, name)
+        used_names.append(name)
+        name = View._find_available_name(initial_name, used_names)
+        self.assertEqual('Test name (2)', name)
+        used_names.append(name)
+        name = View._find_available_name(initial_name, used_names)
+        self.assertEqual('Test name (3)', name)
+
+
+@tagged('at_install', '-post_install')  # LEGACY at_install
+class TestViewSaving(TestViewSavingCommon):
 
     def eq(self, a, b):
         self.assertEqual(a.tag, b.tag)
@@ -47,6 +237,7 @@ class TestViewSaving(common.TransactionCase):
         self.view_id = self.env['ir.ui.view'].create({
             'name': "Test View",
             'type': 'qweb',
+            'key': 'website.test_view',
             'arch': ET.tostring(self.arch, encoding='unicode')
         })
 
@@ -142,12 +333,7 @@ class TestViewSaving(common.TransactionCase):
         Company = self.env['res.company']
 
         # create an xmlid for the view
-        imd = self.env['ir.model.data'].create({
-            'module': 'website',
-            'name': 'test_view',
-            'model': self.view_id._name,
-            'res_id': self.view_id.id,
-        })
+        imd = self._create_imd(self.view_id)
         self.assertEqual(self.view_id.model_data_id, imd)
         self.assertFalse(imd.noupdate)
 
@@ -208,7 +394,7 @@ class TestViewSaving(common.TransactionCase):
         )
         self.assertIn(
             replacement,
-            view.render().decode('utf-8'),
+            self.env['ir.qweb']._render(view.id),
             'inline script should not be escaped when rendering'
         )
         # common text nodes should be be escaped client side
@@ -217,8 +403,66 @@ class TestViewSaving(common.TransactionCase):
         self.assertIn(replacement, view.arch, 'common text node should not be escaped server side')
         self.assertIn(
             replacement,
-            view.render().decode('utf-8').replace(u'&', u'&amp;'),
+            str(self.env['ir.qweb']._render(view.id)).replace(u'&', u'&amp;'),
             'text node characters wrongly unescaped when rendering'
+        )
+
+    def test_oe_structure_as_inherited_view(self):
+        View = self.env['ir.ui.view']
+        View.create({
+            'name': 'Test View 1',
+            'type': 'qweb',
+            'arch': '<div>Hello World</div>',
+            'key': 'website.test_first_view',
+        })
+        second_view = View.create({
+            'name': 'Test View 2',
+            'type': 'qweb',
+            'arch': '<div><t t-call="website.test_first_view"/></div>',
+            'key': 'website.test_second_view',
+        })
+
+        base = View.create({
+            'name': 'Test View oe_structure',
+            'type': 'qweb',
+            'arch': """<xpath expr='//t[@t-call="website.test_first_view"]' position='after'>
+                        <div class="oe_structure" id='oe_structure_test_view_oe_structure'/>
+                    </xpath>""",
+            'key': 'website.oe_structure_view',
+            'inherit_id': second_view.id
+        })
+
+        # check view mode
+        self.assertEqual(base.mode, 'extension')
+
+        # update content of the oe_structure
+        value = '''<div class="oe_structure" id="oe_structure_test_view_oe_structure" data-oe-id="%s"
+                         data-oe-xpath="/div" data-oe-model="ir.ui.view" data-oe-field="arch">
+                        <p>Hello World!</p>
+                   </div>''' % base.id
+
+        base.with_context(website_id=1).save(value=value, xpath='/xpath/div')
+
+        self.assertEqual(len(base.with_context(website_id=1).inherit_children_ids), 1)
+        self.assertEqual(base.with_context(website_id=1).inherit_children_ids.mode, 'extension')
+        self.assertIn(
+            '<p>Hello World!</p>',
+            base.with_context(website_id=1).inherit_children_ids.get_combined_arch(),
+        )
+
+    def test_save_oe_structure_with_attr(self):
+        """ Test saving oe_structure with attributes """
+        view = self.env['ir.ui.view'].create({
+            'arch': u'<t t-name="dummy"><div class="oe_structure" t-att-test="1" data-test="1" id="oe_structure_test"/></t>',
+            'type': 'qweb'
+        }).with_context(website_id=1, load_all_views=True)
+        replacement = u'<div class="oe_structure" data-test="1" id="oe_structure_test" data-oe-id="55" test="2">hello</div>'
+        view.save(replacement, xpath='/t/div')
+        # branding data-oe-* should be stripped
+        self.assertIn(
+            '<div class="oe_structure" data-test="1" id="oe_structure_test" test="2">hello</div>',
+            view.get_combined_arch(),
+            'saved element attributes are saved excluding branding ones'
         )
 
     def test_save_only_embedded(self):
@@ -265,7 +509,7 @@ class TestViewSaving(common.TransactionCase):
 
 
 @tagged('-at_install', 'post_install')
-class TestCowViewSaving(common.TransactionCase):
+class TestCowViewSaving(TestViewSavingCommon, HttpCase):
     def setUp(self):
         super(TestCowViewSaving, self).setUp()
         View = self.env['ir.ui.view']
@@ -284,6 +528,7 @@ class TestCowViewSaving(common.TransactionCase):
             'arch': '<div position="inside">, extended content</div>',
             'key': 'website.extension_view',
         })
+        self.headers = {"Content-Type": "application/json"}
 
     def test_cow_on_base_after_extension(self):
         View = self.env['ir.ui.view']
@@ -349,7 +594,7 @@ class TestCowViewSaving(common.TransactionCase):
         self.assertEqual(View.search_count([('key', '=', 'website.base_view')]), 1)
         self.assertEqual(View.search_count([('key', '=', 'website.extension_view')]), 1)
 
-        arch = self.base_view.read_combined(['arch'])['arch']
+        arch = self.base_view.get_combined_arch()
         self.assertEqual(arch, '<div>modified content</div>')
 
         # edit on frontend, copy just the leaf
@@ -360,16 +605,16 @@ class TestCowViewSaving(common.TransactionCase):
         self.assertEqual(len(inherit_views.filtered(lambda v: v.website_id.id == 1)), 1)
 
         # read in backend should be unaffected
-        arch = self.base_view.read_combined(['arch'])['arch']
+        arch = self.base_view.get_combined_arch()
         self.assertEqual(arch, '<div>modified content</div>')
         # read on website should reflect change
-        arch = self.base_view.with_context(website_id=1).read_combined(['arch'])['arch']
+        arch = self.base_view.with_context(website_id=1).get_combined_arch()
         self.assertEqual(arch, '<div>website 1 content</div>')
 
         # website-specific inactive view should take preference over active generic one when viewing the website
         # this is necessary to make customize_show=True templates work correctly
         inherit_views.filtered(lambda v: v.website_id.id == 1).write({'active': False})
-        arch = self.base_view.with_context(website_id=1).read_combined(['arch'])['arch']
+        arch = self.base_view.with_context(website_id=1).get_combined_arch()
         self.assertEqual(arch, '<div>base content</div>')
 
     def test_cow_root(self):
@@ -392,10 +637,10 @@ class TestCowViewSaving(common.TransactionCase):
         self.assertEqual(len(inherit_views), 2)
         self.assertEqual(len(inherit_views.filtered(lambda v: v.website_id.id == 1)), 1)
 
-        arch = generic_base_view.with_context(load_all_views=True).read_combined(['arch'])['arch']
+        arch = generic_base_view.with_context(load_all_views=True).get_combined_arch()
         self.assertEqual(arch, '<div>modified base content, extended content</div>')
 
-        arch = website_specific_base_view.with_context(load_all_views=True, website_id=1).read_combined(['arch'])['arch']
+        arch = website_specific_base_view.with_context(load_all_views=True, website_id=1).get_combined_arch()
         self.assertEqual(arch, '<div>website 1 content, extended content</div>')
 
     # # As there is a new SQL constraint that prevent QWeb views to have an empty `key`, this test won't work
@@ -474,8 +719,8 @@ class TestCowViewSaving(common.TransactionCase):
         # 1  | Base      |  Hi     |     /      |     /    |  website.base_view
         # 2  | Extension |  World  |     /      |     1    |  website.extension_view
 
-        arch = self.base_view.with_context(website_id=1).read_combined(['arch'])['arch']
-        self.assertEqual('Hi World' in arch, True)
+        arch = self.base_view.with_context(website_id=1).get_combined_arch()
+        self.assertIn('Hi World', arch)
 
         self.base_view.write({'arch': '<div>Hello</div>'})
 
@@ -484,8 +729,8 @@ class TestCowViewSaving(common.TransactionCase):
         # 1  | Base      |  Hello  |     /      |     /    |  website.base_view
         # 2  | Extension |  World  |     /      |     1    |  website.extension_view
 
-        arch = self.base_view.with_context(website_id=1).read_combined(['arch'])['arch']
-        self.assertEqual('Hello World' in arch, True)
+        arch = self.base_view.with_context(website_id=1).get_combined_arch()
+        self.assertIn('Hello World', arch)
 
         self.base_view.with_context(website_id=1).write({'arch': '<div>Bye</div>'})
 
@@ -511,7 +756,7 @@ class TestCowViewSaving(common.TransactionCase):
         # 2  | Extension |  World  |     /      |     1    |  website.extension_view
         # 4  | Extension |  All    |     1      |     3    |  website.extension_view
 
-        arch = base_specific.with_context(website_id=1).read_combined(['arch'])['arch']
+        arch = base_specific.with_context(website_id=1).get_combined_arch()
         self.assertEqual('Bye All' in arch, True)
 
         self.inherit_view.with_context(website_id=1).write({'arch': '<div position="inside"> Nobody</div>'})
@@ -523,13 +768,13 @@ class TestCowViewSaving(common.TransactionCase):
         # 2  | Extension |  World  |     /      |     1    |  website.extension_view
         # 4  | Extension |  Nobody |     1      |     3    |  website.extension_view
 
-        arch = base_specific.with_context(website_id=1).read_combined(['arch'])['arch']
+        arch = base_specific.with_context(website_id=1).get_combined_arch()
         self.assertEqual('Bye Nobody' in arch, True, "Write on generic `inherit_view` should have been diverted to already existing specific view")
 
-        base_arch = self.base_view.read_combined(['arch'])['arch']
-        base_arch_w1 = self.base_view.with_context(website_id=1).read_combined(['arch'])['arch']
+        base_arch = self.base_view.get_combined_arch()
+        base_arch_w1 = self.base_view.with_context(website_id=1).get_combined_arch()
         self.assertEqual('Hello World' in base_arch, True)
-        self.assertEqual(base_arch, base_arch_w1, "Reading a top level view with or without a website_id in the context should render that exact view..")  # ..even if there is a specific view for that one, as read_combined is supposed to render specific inherited view over generic but not specific top level instead of generic top level
+        self.assertEqual(base_arch, base_arch_w1, "Reading a top level view with or without a website_id in the context should render that exact view..")  # ..even if there is a specific view for that one, as get_combined_arch is supposed to render specific inherited view over generic but not specific top level instead of generic top level
 
     def test_cow_cross_inherit(self):
         View = self.env['ir.ui.view']
@@ -564,28 +809,28 @@ class TestCowViewSaving(common.TransactionCase):
         main_view.with_context(website_id=1).write({'arch': '<body>SPECIFIC<div>Z</div></body>'})
         self.assertEqual(total_views + 3 + 3, View.search_count([]), "It should have duplicated the Main View tree as a specific tree and then removed the specific view from the generic tree as no more needed")
 
-        generic_view = View.with_context(website_id=None).get_view_id('website.main_view')
-        specific_view = View.with_context(website_id=1).get_view_id('website.main_view')
-        generic_view_arch = View.browse(generic_view).with_context(load_all_views=True).read_combined(['arch'])['arch']
-        specific_view_arch = View.browse(specific_view).with_context(load_all_views=True, website_id=1).read_combined(['arch'])['arch']
+        generic_view = View.with_context(website_id=None)._get_template_view("website.main_view")
+        specific_view = View.with_context(website_id=1)._get_template_view("website.main_view")
+        generic_view_arch = generic_view.with_context(load_all_views=True).get_combined_arch()
+        specific_view_arch = specific_view.with_context(load_all_views=True, website_id=1).get_combined_arch()
         self.assertEqual(generic_view_arch, '<body>GENERIC<div>VIEW<span>C</span></div></body>')
         self.assertEqual(specific_view_arch, '<body>SPECIFIC<div>VIEW<span>D</span></div></body>', "Writing on top level view hierarchy with a website in context should write on the view and clone it's inherited views")
 
-    def test_multi_website_view_obj_active(self):
+    def test_multi_website_view_active(self):
         ''' With the following structure:
             * A generic active parent view
             * A generic active child view, that is inactive on website 1
             The methods to retrieve views should return the specific inactive
             child over the generic active one.
         '''
-        View = self.env['ir.ui.view']
+        View = self.env['ir.ui.view'].with_context(active_test=False)
         self.inherit_view.with_context(website_id=1).write({'active': False})
 
-        # Test _view_obj() return the inactive specific over active generic
-        inherit_view = View._view_obj(self.inherit_view.key)
-        self.assertEqual(inherit_view.active, True, "_view_obj should return the generic one")
-        inherit_view = View.with_context(website_id=1)._view_obj(self.inherit_view.key)
-        self.assertEqual(inherit_view.active, False, "_view_obj should return the specific one")
+        # Test _get_template_view() return the inactive specific over active generic
+        inherit_view = View._get_template_view(self.inherit_view.key)
+        self.assertEqual(inherit_view.active, True, "_get_template_view should return the generic one")
+        inherit_view = View.with_context(website_id=1)._get_template_view(self.inherit_view.key)
+        self.assertEqual(inherit_view.active, False, "_get_template_view should return the specific one")
 
         # Test get_related_views() return the inactive specific over active generic
         # Note that we cannot test get_related_views without a website in context as it will fallback on a website with get_current_website()
@@ -718,7 +963,7 @@ class TestCowViewSaving(common.TransactionCase):
             when copying them on the new specific tree.
             Correct order is the same as the one when applying view arch:
             PRIORITY, ID
-            And not the default one from ir.ui.view (NAME, PRIORIRTY, ID).
+            And not the default one from ir.ui.view (NAME, PRIORITY, ID).
         """
         self.inherit_view.copy({
             'name': 'alphabetically before "Extension"',
@@ -727,6 +972,34 @@ class TestCowViewSaving(common.TransactionCase):
         })
         # Next line should not crash, COW loop on inherit_children_ids should be sorted correctly
         self.base_view.with_context(website_id=1).write({'name': 'Product (W1)'})
+
+    def test_write_order_vs_cow_inherit_children_order(self):
+        """ When both a specific inheriting view and a non-specific base view
+            are written simultaneously, the specific inheriting base view
+            must be updated even though its id will change during the COW of
+            the base view.
+        """
+        View = self.env['ir.ui.view']
+        self.inherit_view.with_context(website_id=1).write({'name': 'Specific Inherited View Changed First'})
+        specific_view = View.search([('name', '=', 'Specific Inherited View Changed First')])
+        views = View.browse([self.base_view.id, specific_view.id])
+        views.with_context(website_id=1).write({'active': False})
+        new_specific_view = View.search([('name', '=', 'Specific Inherited View Changed First')])
+        self.assertTrue(specific_view.id != new_specific_view.id, "Should have a new id")
+        self.assertFalse(new_specific_view.active, "Should have been deactivated")
+
+    def test_write_order_vs_cow_inherit_children_order_alt(self):
+        """ Same as the previous test, but requesting the update in the
+            opposite order.
+        """
+        View = self.env['ir.ui.view']
+        self.inherit_view.with_context(website_id=1).write({'name': 'Specific Inherited View Changed First'})
+        specific_view = View.search([('name', '=', 'Specific Inherited View Changed First')])
+        views = View.browse([specific_view.id, self.base_view.id])
+        views.with_context(website_id=1).write({'active': False})
+        new_specific_view = View.search([('name', '=', 'Specific Inherited View Changed First')])
+        self.assertTrue(specific_view.id != new_specific_view.id, "Should have a new id")
+        self.assertFalse(new_specific_view.active, "Should have been deactivated")
 
     def test_module_new_inherit_view_on_parent_already_forked(self):
         """ If a generic parent view is copied (COW) and that another module
@@ -756,9 +1029,14 @@ class TestCowViewSaving(common.TransactionCase):
             'arch': '<div position="replace"><p>COMPARE</p></div>',
             'key': '_website_sale_comparison.product_add_to_compare',
         })])
+        View.invalidate_model()
+
+        # Simulate end of installation/update
+        View._create_all_specific_views(['_website_sale_comparison'])
 
         specific_view = Website.with_context(load_all_views=True, website_id=1).viewref('_website_sale.product')
-        specific_view_arch = specific_view.read_combined(['arch'])['arch']
+        self.assertEqual(self.base_view.key, specific_view.key, "Ensure it is equal as it should be for the rest of the test so we test the expected behaviors")
+        specific_view_arch = specific_view.get_combined_arch()
         self.assertEqual(specific_view.website_id.id, 1, "Ensure we got specific view to perform the checks against")
         self.assertEqual(specific_view_arch, '<p>COMPARE</p>', "When a module creates an inherited view (on a generic tree), it should also create that view in the specific COW'd tree.")
 
@@ -766,25 +1044,37 @@ class TestCowViewSaving(common.TransactionCase):
         View._load_records([dict(xml_id='_website_sale_comparison.product_add_to_compare', values={
             'arch': '<div position="replace"><p>COMPARE EDITED</p></div>',
         })])
-
-        specific_view_arch = Website.with_context(load_all_views=True, website_id=1).viewref('_website_sale.product').read_combined(['arch'])['arch']
+        specific_view_arch = Website.with_context(load_all_views=True, website_id=1).viewref('_website_sale.product').get_combined_arch()
         self.assertEqual(specific_view_arch, '<p>COMPARE EDITED</p>', "When a module updates an inherited view (on a generic tree), it should also update the copies of that view (COW).")
 
         # Test fields that should not be COW'd
-        random_view_id = View.search([], limit=1).id
+        random_views = self.env.ref('website.s_accordion_image') + self.env.ref('website.s_accordion')
         View._load_records([dict(xml_id='_website_sale_comparison.product_add_to_compare', values={
             'website_id': None,
-            'inherit_id': random_view_id,
+            'inherit_id': random_views[0].id,
         })])
 
         w1_specific_child_view = Website.with_context(load_all_views=True, website_id=1).viewref('_website_sale_comparison.product_add_to_compare')
         generic_child_view = Website.with_context(load_all_views=True).viewref('_website_sale_comparison.product_add_to_compare')
         self.assertEqual(w1_specific_child_view.website_id.id, 1, "website_id is a prohibited field when COWing views during _load_records")
-        self.assertEqual(w1_specific_child_view.inherit_id.id != random_view_id, True, "inherit_id is a prohibited field when COWing views during _load_records")
-        self.assertEqual(generic_child_view.inherit_id.id, random_view_id, "prohibited fields only concerned write on COW'd view. Generic should still considere these fields")
+        self.assertEqual(generic_child_view.inherit_id, random_views[0], "prohibited fields only concerned write on COW'd view. Generic should still considere these fields")
+        self.assertEqual(w1_specific_child_view.inherit_id, random_views[0], "inherit_id update should be repliacated on cow views during _load_records")
 
         # Set back the generic view as parent for the rest of the test
         generic_child_view.inherit_id = self.base_view
+        w1_specific_child_view.inherit_id = specific_view
+
+        # Don't update inherit_id if it was anually updated
+        w1_specific_child_view.inherit_id = random_views[1].id
+        View._load_records([dict(xml_id='_website_sale_comparison.product_add_to_compare', values={
+            'inherit_id': random_views[0].id,
+        })])
+        self.assertEqual(w1_specific_child_view.inherit_id, random_views[1],
+                         "inherit_id update should not be repliacated on cow views during _load_records if it was manually updated before")
+
+        # Set back the generic view as parent for the rest of the test
+        generic_child_view.inherit_id = self.base_view
+        w1_specific_child_view.inherit_id = specific_view
 
         # Don't update fields from COW'd view if these fields have been modified from original view
         new_website = Website.create({'name': 'New Website'})
@@ -799,12 +1089,8 @@ class TestCowViewSaving(common.TransactionCase):
         self.assertEqual(new_website_specific_child_view.priority, 6, "XML update should NOT be written on the specific view if the fields have been modified on that specific view")
 
         # Simulate website_sale update on top level view
-        self.env['ir.model.data'].create({
-            'module': '_website_sale',
-            'name': 'product',
-            'model': self.base_view._name,
-            'res_id': self.base_view.id,
-        })
+        self._create_imd(self.base_view)
+        self.base_view.invalidate_model()
         View._load_records([dict(xml_id='_website_sale.product', values={
             'website_meta_title': 'A bug got fixed by updating this field',
         })])
@@ -831,7 +1117,7 @@ class TestCowViewSaving(common.TransactionCase):
             'name': 'Main layout',
             'mode': 'extension',
             'inherit_id': base_view.id,
-            'arch': '<xpath expr="//t[@t-set=\'head_website\']" position="replace"><t t-call-assets="web_editor.summernote" t-js="false" groups="website.group_website_publisher"/></xpath>',
+            'arch': '<xpath expr="//t[@t-set=\'head_website\']" position="replace"><t t-call-assets="assets_summernote" t-js="false" groups="website.group_website_restricted_editor"/></xpath>',
             'key': '_website.layout',
         })
 
@@ -844,7 +1130,7 @@ class TestCowViewSaving(common.TransactionCase):
             'name': 'Forum Layout',
             'mode': 'primary',
             'inherit_id': inherit_view.id,
-            'arch': '<xpath expr="//t[@t-call-assets=\'web_editor.summernote\'][@t-js=\'false\']" position="attributes"><attribute name="groups"/></xpath>',
+            'arch': '<xpath expr="//t[@t-call-assets=\'assets_summernote\'][@t-js=\'false\']" position="attributes"><attribute name="groups"/></xpath>',
             'key': '_website_forum.layout',
         })])
 
@@ -896,6 +1182,257 @@ class TestCowViewSaving(common.TransactionCase):
         # 5  | Extension   |  , extended content   |     1      |     4    |  website.extension_view
         # 3  | Extension 2 |  , extended content 2 |     1      |     5    |  website.extension_view_2
 
+    def test_cow_extension_with_install(self):
+        View = self.env['ir.ui.view']
+        # Base
+        v1 = View.create({
+            'name': 'Base',
+            'type': 'qweb',
+            'arch': '<div>base content</div>',
+            'key': 'website.base_view_v1',
+        }).with_context(load_all_views=True)
+        self._create_imd(v1)
+
+        # Extension
+        v2 = View.create({
+            'name': 'Extension',
+            'mode': 'extension',
+            'inherit_id': v1.id,
+            'arch': '<div position="inside"><ooo>extended content</ooo></div>',
+            'key': 'website.extension_view_v2',
+        })
+        self._create_imd(v2)
+
+        # multiwebsite specific
+        v1.with_context(website_id=1).write({'name': 'Extension Specific'})
+
+        original_pool_init = View.pool._init
+        View.pool._init = True
+
+        try:
+            # Simulate module install
+            View._load_records([dict(xml_id='website.extension2_view', values={
+                'name': ' ---',
+                'mode': 'extension',
+                'inherit_id': v1.id,
+                'arch': '<ooo position="replace"><p>EXTENSION</p></ooo>',
+                'key': 'website.extension2_view',
+            })])
+        finally:
+            View.pool._init = original_pool_init
+
+    def test_specific_view_translation(self):
+        self.env['res.lang']._activate_lang('fr_BE')
+        self.base_view.with_context(lang='en_US').arch_db = '<div>hello</div>'
+        self.base_view.update_field_translations('arch_db', {'fr_BE': {'hello': 'bonjour'}})
+        self.assertEqual(self.base_view.with_context(lang='fr_BE').arch, '<div>bonjour</div>')
+        self.base_view.with_context(website_id=1).write({'active': True})
+        specific_view = self.base_view._get_specific_views() - self.base_view
+
+        self.assertEqual(specific_view.with_context(lang='fr_BE').arch, '<div>bonjour</div>',
+                         "copy on write (COW) also copy existing translations")
+
+        self.base_view.update_field_translations('arch_db', {'fr_BE': {'hello': 'salut'}})
+        self.assertEqual(self.base_view.with_context(lang='fr_BE').arch, '<div>salut</div>')
+        self.assertEqual(specific_view.with_context(lang='fr_BE').arch, '<div>bonjour</div>',
+                         "updating translation of base view doesn't update specific view")
+
+        self.env['res.lang']._activate_lang('es_ES')
+        # Translate specific 'arch_db' while the generic value has no content for the
+        # translation language.
+        specific_view.update_field_translations('arch_db', {'es_ES': {'hello': 'hola'}})
+        self.assertEqual(specific_view.with_context(lang='es_ES').arch, '<div>hola</div>')
+
+        self.env['ir.module.module']._load_module_terms(['website'], ['en_US', 'fr_BE', 'es_ES'], overwrite=True)
+
+        specific_view.invalidate_model(['arch_db', 'arch'])
+        self.assertEqual(specific_view.with_context(lang='fr_BE').arch, '<div>salut</div>',
+                         "loading module translation copy translation from base to specific view")
+
+        self.assertEqual(specific_view.with_context(lang='es_ES').arch, '<div>hola</div>',
+                         "loading module translation should not remove specific translations that are not available on base view")
+
+        # Make sure updating a short list of languages does not destroy existing translations.
+        self.env['res.lang']._activate_lang('nl_NL')
+
+        self.env['ir.module.module']._load_module_terms(['website'], ['nl_NL'], overwrite=True)
+
+        specific_view.invalidate_model(['arch_db', 'arch'])
+        self.assertEqual(specific_view.with_context(lang='fr_BE').arch, '<div>salut</div>',
+                         "loading module translation for a specific language should not remove existing translations for other languages")
+
+        self.assertEqual(specific_view.with_context(lang='es_ES').arch, '<div>hola</div>',
+                         "loading module translation for a specific language should not remove existing translations for other languages")
+
+    def test_view_to_translate_tag(self):
+        fr_BE = self.env['res.lang']._activate_lang('fr_BE')
+        self.base_view.with_context(lang='en_US').arch_db = '<div>hello</div>'
+        self.assertFalse(self.base_view.website_id)
+        website = self.env['website'].browse(1)
+        website.default_lang_id = fr_BE
+        self.base_view.with_context(website_id=1).write({'active': True})
+        specific_view = self.base_view._get_specific_views() - self.base_view
+
+        # generic view without website_id but with website for request
+        with patch('odoo.addons.website.models.ir_http.get_request_website', lambda: website):
+            self.base_view.invalidate_recordset()
+            self.assertIn('to_translate', self.base_view.with_context(lang='en_US', edit_translations=True).arch)
+            self.assertIn('translated', self.base_view.with_context(lang='fr_BE', edit_translations=True).arch)
+            self.base_view.invalidate_recordset()
+
+        # generic view without website_id
+        self.assertIn('translated', self.base_view.with_context(lang='en_US', edit_translations=True).arch)
+        self.assertIn('to_translate', self.base_view.with_context(lang='fr_BE', edit_translations=True).arch)
+        self.base_view.update_field_translations('arch_db', {'fr_BE': {'hello': 'bonjour'}})
+        self.assertIn('translated', self.base_view.with_context(lang='en_US', edit_translations=True).arch)
+        self.assertIn('translated', self.base_view.with_context(lang='fr_BE', edit_translations=True).arch)
+
+        # specific view with website_id
+        self.assertIn('to_translate', specific_view.with_context(lang='en_US', edit_translations=True).arch)
+        self.assertIn('translated', specific_view.with_context(lang='fr_BE', edit_translations=True).arch)
+
+    def test_load_module_terms_preserve_delayed_translation(self):
+        self.env['res.lang']._activate_lang('fr_BE')
+        base_footer = self.env['ir.ui.view'].search([
+            ('key', '=', 'website.footer_custom'),
+            ('website_id', '=', False),
+        ], limit=1)
+        base_footer.with_context(website_id=1).write({'active': True})
+        specific_footer = base_footer._get_specific_views()
+        specific_footer.with_context(lang='en_US').arch_db = '<div>hello</div>'
+        specific_footer.update_field_translations('arch_db', {'fr_BE': {'hello': 'bonjour'}})
+
+        self.assertEqual(specific_footer.with_context(lang='en_US').arch, '<div>hello</div>')
+        self.assertEqual(specific_footer.with_context(lang='fr_BE').arch, '<div>bonjour</div>')
+
+        specific_footer.with_context(delay_translations=True, lang='en_US').arch_db = '<h1>hello</h1>'
+
+        self.assertEqual(specific_footer.with_context(lang='en_US').arch, '<h1>hello</h1>')
+        self.assertEqual(specific_footer.with_context(lang='fr_BE').arch, '<div>bonjour</div>')
+
+        self.env['ir.module.module']._load_module_terms(['website'], ['en_US', 'fr_BE'])
+
+        self.assertEqual(specific_footer.with_context(lang='en_US').arch, '<h1>hello</h1>')
+        self.assertEqual(specific_footer.with_context(lang='fr_BE').arch, '<div>bonjour</div>')
+
+    def test_soc_complete_flow(self):
+        """
+        Check the creation of views from specific-website environments.
+        """
+        View = self.env['ir.ui.view']
+
+        View.with_context(website_id=1).create({
+            'name': 'Name',
+            'key': 'website.no_website_id',
+            'type': 'qweb',
+            'arch': '<data></data>',
+        })
+        # Get created views by searching to consider potential unwanted COW
+        created_views = View.search([('key', '=', 'website.no_website_id')])
+        self.assertEqual(len(created_views), 1, "Should only have created one view")
+        self.assertEqual(created_views.website_id.id, 1, "The created view should be specific to website 1")
+
+        with self.assertRaises(ValueError, msg="Should not allow to create generic view explicitely from website 1 specific context"):
+            View.with_context(website_id=1).create({
+                'name': 'Name',
+                'key': 'website.explicit_no_website_id',
+                'type': 'qweb',
+                'arch': '<data></data>',
+                'website_id': False,
+            })
+
+        with self.assertRaises(ValueError, msg="Should not allow to create specific view for website 2 from website 1 specific context"):
+            View.with_context(website_id=1).create({
+                'name': 'Name',
+                'key': 'website.different_website_id',
+                'type': 'qweb',
+                'arch': '<data></data>',
+                'website_id': 2,
+            })
+
+    def test_specific_view_module_update_inherit_change(self):
+        """ During a module update, if inherit_id is changed, we need to
+        replicate the change for cow views. """
+        # If D.inherit_id becomes B instead of A, after module update, we expect:
+        # CASE 1
+        #   A    A'   B                      A    A'   B
+        #   |    |                 =>                 / \
+        #   D    D'                                  D   D'
+        #
+        # CASE 2
+        #   A    A'   B    B'               A    A'   B   B'
+        #   |    |                 =>                 |   |
+        #   D    D'                                   D   D'
+        #
+        # CASE 3
+        #     A    B                        A    B
+        #    / \                   =>           / \
+        #   D   D'                             D   D'
+        #
+        # CASE 4
+        #     A    B    B'                  A    B   B'
+        #    / \                   =>            |   |
+        #   D   D'                               D   D'
+
+        # 1. Setup following view trees
+        #   A    A'   B
+        #   |    |
+        #   D    D'
+        View = self.env['ir.ui.view']
+        Website = self.env['website']
+        self._create_imd(self.inherit_view)
+        # invalidate cache to recompute xml_id, or it will still be empty
+        self.inherit_view.invalidate_model()
+        base_view_2 = self.base_view.copy({'key': 'website.base_view2', 'arch': '<div>base2 content</div>'})
+        self.base_view.with_context(website_id=1).write({'arch': '<div>website 1 content</div>'})
+        specific_view = Website.with_context(load_all_views=True, website_id=1).viewref(self.base_view.key)
+        specific_view.inherit_children_ids.with_context(website_id=1).write({'arch': '<div position="inside">, extended content website 1</div>'})
+        specific_child_view = Website.with_context(load_all_views=True, website_id=1).viewref(self.inherit_view.key)
+        # 2. Ensure view trees are as expected
+        self.assertEqual(self.base_view.inherit_children_ids, self.inherit_view, "D should be under A")
+        self.assertEqual(specific_view.inherit_children_ids, specific_child_view, "D' should be under A'")
+        self.assertFalse(base_view_2.inherit_children_ids, "B should have no child")
+
+        # 3. Simulate module update, D.inherit_id is now B instead of A
+        View._load_records([dict(xml_id=self.inherit_view.key, values={
+            'inherit_id': base_view_2.id,
+        })])
+
+        # 4. Ensure view trees is now
+        #   A    A'   B
+        #            / \
+        #           D   D'
+        self.assertTrue(len(self.base_view.inherit_children_ids) == len(specific_view.inherit_children_ids) == 0,
+                        "Child views should now be under view B")
+        self.assertEqual(len(base_view_2.inherit_children_ids), 2, "D and D' should be under B")
+        self.assertTrue(self.inherit_view in base_view_2.inherit_children_ids, "D should be under B")
+        self.assertTrue(specific_child_view in base_view_2.inherit_children_ids, "D' should be under B")
+
+    def test_no_cow_on_translate(self):
+        self.authenticate('admin', 'admin')
+        french = self.env['res.lang']._activate_lang('fr_FR')
+        self.env['ir.module.module']._load_module_terms(['website'], [french.code])
+        # Make sure res.lang.get_installed is recomputed
+        self.env.registry.clear_cache()
+
+        View = self.env['ir.ui.view'].with_context(lang=french.code, website_id=1)
+        old_specific_views = View.search([('website_id', '!=', None)])
+        view = self.base_view.with_context(lang=french.code, website_id=1)
+
+        root = html.fromstring(self.base_view.arch, parser=html.HTMLParser(encoding="utf-8"))
+        to_translate = root.text_content()
+        sha = sha256(to_translate.encode()).hexdigest()
+        payload = self.build_rpc_payload({
+            'model': view._name,
+            'record_id': view.id,
+            'field_name': 'arch_db',
+            'translations': {french.code: {sha: 'contenu de base'}},
+        })
+        self.url_open('/website/field/translation/update', data=json.dumps(payload), headers=self.headers)
+        new_specific_views = View.search([('website_id', '!=', None)])
+        self.assertEqual(len(old_specific_views), len(new_specific_views), "No additional specific view must have been created")
+        self.assertTrue(view.arch.index('contenu de base') > 0, "New translation must appear in view")
+
 
 @tagged('-at_install', 'post_install')
 class Crawler(HttpCase):
@@ -919,7 +1456,6 @@ class Crawler(HttpCase):
         })
 
     def test_get_switchable_related_views(self):
-        View = self.env['ir.ui.view']
         Website = self.env['website']
 
         # Set up
@@ -934,7 +1470,7 @@ class Crawler(HttpCase):
         })
         self.inherit_view.write({'name': 'Main layout', 'key': '_website.layout'})
 
-        self.inherit_view.copy({'name': 'Show Sign In', 'customize_show': True, 'key': '_portal.portal_show_sign_in'})
+        self.inherit_view.copy({'name': 'Sign In', 'customize_show': True, 'key': '_portal.user_sign_in'})
         view_logo = self.inherit_view.copy({
             'name': 'Show Logo',
             'inherit_id': self.inherit_view.id,
@@ -956,7 +1492,7 @@ class Crawler(HttpCase):
         event_child_view.copy({'name': 'Filter by Category', 'inherit_id': event_child_view.id, 'key': '_website_event.event_category'})
         event_child_view.copy({'name': 'Filter by Country', 'inherit_id': event_child_view.id, 'key': '_website_event.event_location'})
 
-        View.flush()
+        self.env.flush_all()
 
         # Customize
         #   | Main Frontend Layout
@@ -973,22 +1509,20 @@ class Crawler(HttpCase):
         #       | Filter By Country
 
         self.authenticate("admin", "admin")
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        base_url = website_1.get_base_url()
 
         # Simulate website 2 (that use only generic views)
-        url = base_url + '/website/force_website'
-        json = {'params': {'website_id': website_2.id}}
-        self.opener.post(url=url, json=json)
+        self.url_open(base_url + '/website/force/%s' % website_2.id)
 
         # Test controller
         url = base_url + '/website/get_switchable_related_views'
         json = {'params': {'key': '_website_event.index'}}
-        response = self.opener.post(url=url, json=json)
+        response = self.url_open(url=url, json=json)
         res = response.json()['result']
 
         self.assertEqual(
             [v['name'] for v in res],
-            ['Show Sign In', 'Affix Top Menu', 'Show Logo', 'Filters', 'Photos', 'Quotes', 'Filter by Category', 'Filter by Country'],
+            ['Sign In', 'Affix Top Menu', 'Show Logo', 'Filters', 'Photos', 'Quotes', 'Filter by Category', 'Filter by Country'],
             "Sequence should not be taken into account for customize menu",
         )
         self.assertEqual(
@@ -1016,18 +1550,16 @@ class Crawler(HttpCase):
         #       | Filter By Country
 
         # Simulate website 1 (that has specific views)
-        url = base_url + '/website/force_website'
-        json = {'params': {'website_id': website_1.id}}
-        self.opener.post(url=url, json=json)
+        self.url_open(base_url + '/website/force/%s' % website_1.id)
 
         # Test controller
         url = base_url + '/website/get_switchable_related_views'
         json = {'params': {'key': '_website_event.index'}}
-        response = self.opener.post(url=url, json=json)
+        response = self.url_open(url=url, json=json)
         res = response.json()['result']
         self.assertEqual(
             [v['name'] for v in res],
-            ['Show Sign In', 'Affix Top Menu', 'Show Logo', 'Filters', 'Photos', 'Quotes', 'Filter by Category', 'Filter by Country'],
+            ['Sign In', 'Affix Top Menu', 'Show Logo', 'Filters', 'Photos', 'Quotes', 'Filter by Category', 'Filter by Country'],
             "multi-website COW should not impact customize views order (COW view will have a bigger ID and should not be last)",
         )
         self.assertEqual(
@@ -1058,11 +1590,11 @@ class Crawler(HttpCase):
         # Test controller
         url = base_url + '/website/get_switchable_related_views'
         json = {'params': {'key': '_website_event.index'}}
-        response = self.opener.post(url=url, json=json)
+        response = self.url_open(url=url, json=json)
         res = response.json()['result']
         self.assertEqual(
             [v['name'] for v in res],
-            ['Show Sign In', 'Affix Top Menu', 'Show Logo', 'Filters', 'Photos', 'Quotes', 'Filter by Category', 'Filter by Country'],
+            ['Sign In', 'Affix Top Menu', 'Show Logo', 'Filters', 'Photos', 'Quotes', 'Filter by Category', 'Filter by Country'],
             "multi-website COW should not impact customize views order (COW view will have a bigger ID and should not be last) (2)",
         )
         self.assertEqual(
@@ -1132,10 +1664,10 @@ class Crawler(HttpCase):
         # ----------------------------------------------------------------------------------------------------------------
         #  1 | Products Theme Kea              |    1    | _theme_kea_sale.products      | _theme_kea_sale.products      |
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(MissingError):
             # It should crash as it should not find a view on website 1 for '_theme_kea_sale.products', !!and certainly not a theme.ir.ui.view!!.
-            view = View.with_context(website_id=website_1.id)._view_obj('_theme_kea_sale.products')
-        view = View.with_context(website_id=website_2.id)._view_obj('_theme_kea_sale.products')
+            view = View.with_context(website_id=website_1.id)._get_template_view('_theme_kea_sale.products')
+        view = View.with_context(website_id=website_2.id)._get_template_view('_theme_kea_sale.products')
         self.assertEqual(len(view), 1, "It should find the ir.ui.view with key '_theme_kea_sale.products' on website 2..")
         self.assertEqual(view._name, 'ir.ui.view', "..and not a theme.ir.ui.view")
 
@@ -1188,30 +1720,26 @@ class Crawler(HttpCase):
         # ########################################################
         # Test the controller (which is calling get_related_views)
         self.authenticate("admin", "admin")
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        base_url = website_1.get_base_url()
 
         # Simulate website 2
-        url = base_url + '/website/force_website'
-        json = {'params': {'website_id': website_2.id}}
-        self.opener.post(url=url, json=json)
+        self.url_open(base_url + '/website/force/%s' % website_2.id)
 
         # Test controller
         url = base_url + '/website/get_switchable_related_views'
         json = {'params': {'key': '_website_sale.products'}}
-        response = self.opener.post(url=url, json=json)
+        response = self.url_open(url=url, json=json)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()['result']), 1, "Only '_theme_kea_sale.products' should be returned as it is the only customize_show related view in website 2 context")
         self.assertEqual(response.json()['result'][0]['key'], '_theme_kea_sale.products', "Only '_theme_kea_sale.products' should be returned")
 
         # Simulate website 1
-        url = base_url + '/website/force_website'
-        json = {'params': {'website_id': website_1.id}}
-        self.opener.post(url=url, json=json)
+        self.url_open(base_url + '/website/force/%s' % website_1.id)
 
         # Test controller
         url = base_url + '/website/get_switchable_related_views'
         json = {'params': {'key': '_website_sale.products'}}
-        response = self.opener.post(url=url, json=json)
+        response = self.url_open(url=url, json=json)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()['result']), 1, "Only '_website_sale.child_view_w1' should be returned as it is the only customize_show related view in website 1 context")
         self.assertEqual(response.json()['result'][0]['key'], '_website_sale.child_view_w1', "Only '_website_sale.child_view_w1' should be returned")
@@ -1236,6 +1764,8 @@ class TestThemeViews(common.TransactionCase):
         main_view.with_context(website_id=website_1.id).arch = '<body>specific</body>'
 
         # 2. Simulate a theme install with a child view of `main_view`
+        patcher = patch('odoo.modules.Manifest.for_addon', return_value=Manifest(path='/dummy/test_theme', manifest_content=_DEFAULT_MANIFEST))
+        self.startPatcher(patcher)
         test_theme_module = self.env['ir.module.module'].create({'name': 'test_theme'})
         self.env['ir.model.data'].create({
             'module': 'base',
@@ -1265,3 +1795,22 @@ class TestThemeViews(common.TransactionCase):
         specific_main_view_children = specific_main_view.inherit_children_ids
         self.assertEqual(specific_main_view_children.name, 'Test Child View', "Ensure theme.ir.ui.view has been loaded as an ir.ui.view into the website..")
         self.assertEqual(specific_main_view_children.website_id, website_1, "..and the website is the correct one.")
+
+        # 4. Simulate theme update. Do it 2 time to make sure it was not interpreted as a user change the first time.
+        new_arch = '<xpath expr="//body" position="replace"><span>Odoo Change01</span></xpath>'
+        theme_view.arch = new_arch
+        test_theme_module.with_context(load_all_views=True)._theme_load(website_1)
+        self.assertEqual(specific_main_view_children.arch, new_arch, "First time: View arch should receive theme updates.")
+        self.assertFalse(specific_main_view_children.arch_updated)
+        new_arch = '<xpath expr="//body" position="replace"><span>Odoo Change02</span></xpath>'
+        theme_view.arch = new_arch
+        test_theme_module.with_context(load_all_views=True)._theme_load(website_1)
+        self.assertEqual(specific_main_view_children.arch, new_arch, "Second time: View arch should still receive theme updates.")
+
+        # 5. Keep User arch changes
+        new_arch = '<xpath expr="//body" position="replace"><span>Odoo</span></xpath>'
+        specific_main_view_children.arch = new_arch
+        theme_view.name = 'Test Child View modified'
+        test_theme_module.with_context(load_all_views=True)._theme_load(website_1)
+        self.assertEqual(specific_main_view_children.arch, new_arch, "View arch shouldn't have been overrided on theme update as it was modified by user.")
+        self.assertEqual(specific_main_view_children.name, 'Test Child View modified', "View should receive modification on theme update.")

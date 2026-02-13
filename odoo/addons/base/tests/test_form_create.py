@@ -12,19 +12,27 @@ class TestFormCreate(TransactionCase):
     """
 
     def test_create_res_partner(self):
+        # YTI: Clean that brol
+        if hasattr(self.env['res.partner'], 'property_account_payable_id'):
+            # Required for `property_account_payable_id`, `property_account_receivable_id` to be visible in the view
+            # By default, it's the `group` `group_account_readonly` which is required to see it, in the `account` module
+            # But once `account_accountant` gets installed, it becomes `account.group_account_user`
+            # https://github.com/odoo/enterprise/commit/68f6c1f9fd3ff6762c98e1a405ade035129efce0
+            self.env.user.group_ids += self.env.ref('account.group_account_readonly')
+            self.env.user.group_ids += self.env.ref('account.group_account_user')
         partner_form = Form(self.env['res.partner'])
         partner_form.name = 'a partner'
         # YTI: Clean that brol
         if hasattr(self.env['res.partner'], 'property_account_payable_id'):
             property_account_payable_id = self.env['account.account'].create({
                 'name': 'Test Account',
-                'user_type_id': self.env.ref('account.data_account_type_payable').id,
+                'account_type': 'liability_payable',
                 'code': 'TestAccountPayable',
                 'reconcile': True
             })
             property_account_receivable_id = self.env['account.account'].create({
                 'name': 'Test Account',
-                'user_type_id': self.env.ref('account.data_account_type_receivable').id,
+                'account_type': 'asset_receivable',
                 'code': 'TestAccountReceivable',
                 'reconcile': True
             })
@@ -48,18 +56,20 @@ class TestFormCreate(TransactionCase):
         group_form.name = 'a group'
         group_form.save()
 
-    def test_create_res_bank(self):
-        bank_form = Form(self.env['res.bank'])
-        bank_form.name = 'a bank'
-        bank_form.save()
+    def test_create_res_partner_bank(self):
+        bank_account_form = Form(self.env['res.partner.bank'].with_context(default_partner_id=self.env.user.partner_id.id))
+        bank_account_form.account_number = '11234'
+        bank_account_form.save()
 
     def test_create_res_country(self):
         country_form = Form(self.env['res.country'])
         country_form.name = 'a country'
+        country_form.code = 'ZX'
         country_form.save()
 
     def test_create_res_lang(self):
         lang_form = Form(self.env['res.lang'])
+        # lang_form.url_code = 'LANG'  # invisible field, tested in http_routing
         lang_form.name = 'a lang name'
         lang_form.code = 'a lang code'
         lang_form.save()

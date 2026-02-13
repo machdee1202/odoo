@@ -1,7 +1,8 @@
 // s_popup
-.s_popup_main {
+.s_popup_main:not([data-vcss]) {
     .s_popup_content {
-        min-height: var(--o-we-toolbar-height);
+        // keep lower than <p> height (cookies bar)
+        min-height: $o-font-size-base * $o-line-height-base;
         box-shadow: $modal-content-box-shadow-sm-up;
         .container {
             // keep margin when fixed bottom
@@ -29,7 +30,7 @@
         cursor: pointer;
         text-align: center;
         z-index: 1;
-        font-size: $popup-close-size;
+        @include font-size($popup-close-size);
     }
 
     &.s_popup_center {
@@ -43,10 +44,11 @@
                 .modal-content {
                     height: 100%;
                     width: 100%;
+                    justify-content: center;
                 }
             }
             .s_popup_close {
-                font-size: 60px;
+                @include font-size(60px);
                 margin: 10px;
                 background: none;
                 box-shadow: none;
@@ -55,11 +57,20 @@
     }
 
     &.s_popup_fixed {
+        &.s_popup_fixed_top {
+            .s_popup_content {
+                top: $o-navbar-height;
+            }
+        }
+        &:not(.s_popup_fixed_top) {
+            .s_popup_content {
+                bottom: 0;
+            }
+        }
         .s_popup_content {
-            z-index: 1;
+            z-index: $zindex-modal;
             position: fixed;
             right: 20px;
-            bottom: 0;
         }
         .modal-sm .s_popup_content {
             width: $modal-sm;
@@ -78,7 +89,7 @@
             left: 0;
             .s_popup_close {
                 box-shadow: none;
-                font-size: 60px;
+                @include font-size(60px);
                 margin: 10px;
                 background: none;
             }
